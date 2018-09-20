@@ -9,6 +9,9 @@ kmd_longestchain=$(echo ${kmdinfo} | jq -r '.longestchain')
 if [[ $kmd_blocks == $kmd_longestchain ]]; then
 	let count=count+1;
 	echo "[Komodo chain syncronised on block ${kmd_blocks}]"
+else if [ $kmd_longestchain == 0 ]; then
+	echo -e "\e[91m ** [Incompatible Komodo version. Join #staked on discord at https://discord.gg/tKRzWe to get latest version. ** \e[39m"
+	exit 0;
 else
 	echo "[Komodo chain not syncronised. On block ${kmd_blocks} of ${kmd_longestchain}]"
 fi
