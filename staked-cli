@@ -14,3 +14,5 @@ for row in $(echo "${ac_json}" | jq -c -r '.[]'); do
   echo $chain
   komodo-cli -ac_name=$chain ${@}
 done
+
+sudo ln -sf /home/$USER/kmd_pulp/staked-cli /usr/local/bin/staked-cli
