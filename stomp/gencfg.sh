@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # The pool addresses for each coin are defined in pool_wallets.json
 # Format is { "chainName":"R-address" }
 
@@ -69,3 +70,4 @@ done
 chmod +x $ufwenablefile
 chmod +x $ufwdisablefile
 ./stratufwenable
+
