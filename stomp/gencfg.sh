@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# The pool addresses for each coin are defined in pool_wallets.json
-# Format is { "chainName":"R-address" }
-
-
 # Any coins you would like to skip go here
 # -ac_perc coins are unminable at this stage
 declare -a skip=("BEER" "PIZZA" "STAKEDUH")
@@ -45,7 +41,8 @@ for row in $(echo "${ac_json}" | jq -c -r '.[]'); do
   if [[ " ${skip[@]} " =~ " ${chain} " ]]; then
         pointless=0
   else
-	  walletaddress=$(cat pool_wallets.json | jq  -r '.["'$chain'"]')
+  	# todo: better path
+    walletaddress=$(cat .#{chain}wallet | jq  -r '.addr')
     echo Configuring $chain with address: ${walletaddress}
     
     string=$(printf '%08x\n' $(komodo-cli -ac_name=$chain getinfo | jq '.magic'))
