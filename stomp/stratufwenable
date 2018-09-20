@@ -1,5 +1,0 @@
-sudo ufw allow 3030 comment 'Stratum STAKEDBB'
-sudo ufw allow 3031 comment 'Stratum STAKEDWW'
-sudo ufw allow 3032 comment 'Stratum STAKEDCF'
-sudo ufw allow 3033 comment 'Stratum STAKEDUHS1'
-sudo ufw allow 3034 comment 'Stratum STAKEDUHS9'
