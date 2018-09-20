@@ -12,7 +12,6 @@ for row in $(echo "${ac_json}" | jq -c -r '.[]'); do
 	}
 	chain=$(_jq '.ac_name')
 	if [ ! -f  ~/kmd_pulp/stomp/wallets/.${chain}_wallet ]; then
-		echo "File not found!"
 		touch  ~/kmd_pulp/stomp/wallets/.${chain}_wallet
 		sudo chmod 600  ~/kmd_pulp/stomp/wallets/.${chain}_wallet
 		address=$(komodo-cli -ac_name=$chain getnewaddress)
