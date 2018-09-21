@@ -5,7 +5,7 @@ echo -e "\e[91m WARNING: This script creates addresses to be use in pool config 
 echo " The address, privkey, and pubkey are stored in a owner read-only file"
 echo -e " make sure to encrypt, backup, or delete as required \e[39m"
 mkdir ~/kmd_pulp/stomp/wallets
-ac_json=$(curl https://raw.githubusercontent.com/blackjok3rtt/StakedNotary/master/assetchains.json 2>/dev/null)
+ac_json=$(curl https://raw.githubusercontent.com/StakedChain/StakedNotary/master/assetchains.json 2>/dev/null)
 for row in $(echo "${ac_json}" | jq -c -r '.[]'); do
 	_jq() {
 		echo ${row} | jq -r ${1}
