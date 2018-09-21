@@ -19,6 +19,7 @@ printbalance () {
   echo "[$target] : $tgt_balance"
 }
 
+num_migrates=0
 ac_json=$(curl https://raw.githubusercontent.com/StakedChain/StakedNotary/master/assetchains.json 2>/dev/null)
 for row in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
 	source=$(echo $row)
@@ -31,6 +32,9 @@ for row in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
 			amount=5
 
 			addresses=$($(echo komodo-cli -ac_name=$target listaddressgroupings))
+                        num_addr=$(echo $addresses | jq '.[] | length')
+			echo "$num_addr addresses at target $target"
+
 			for row in $(echo "${addresses}" | jq -c -r '.[][]'); do
 	        		_jq() {
 	                		echo ${row} | jq -r ${1}
@@ -41,8 +45,11 @@ for row in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
 			        	echo "Source $source balance: $src_balance"
 			        	echo "Target $target balance: $tgt_balance"
 						diff=$(echo $src_balance-$tgt_balance|bc)
-						amount=$(echo $diff/2|bc)
+						spread=$(printf "%.0f" $(echo 2*$num_addr|bc))
+						amount=$(printf "%.0f" $(echo $diff/$spread|bc))
 
+					let num_migrates=num_migrates+1
+					echo "**** Starting Migration #${num_migrates} ************************************"
 			        	echo "**** Sending $amount from $source to $target address $address at $(date) ****"
 
 				        echo "Raw tx that we will work with"
