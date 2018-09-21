@@ -34,7 +34,7 @@ touch $ufwdisablefile
 
 
 #Get Asset Chain Names from json file
-ac_json=$(curl https://raw.githubusercontent.com/blackjok3rtt/StakedNotary/master/assetchains.json 2>/dev/null)
+ac_json=$(curl https://raw.githubusercontent.com/StakedChain/StakedNotary/master/assetchains.json 2>/dev/null)
 for row in $(echo "${ac_json}" | jq -c -r '.[]'); do
   _jq() {
     echo ${row} | jq -r ${1}
