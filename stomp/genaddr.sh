@@ -4,13 +4,20 @@
 echo -e "\e[91m WARNING: This script creates addresses to be use in pool config and payment processing"
 echo " The address, privkey, and pubkey are stored in a owner read-only file"
 echo -e " make sure to encrypt, backup, or delete as required \e[39m"
-mkdir ~/kmd_pulp/stomp/wallets
+if [ ! -d ~/kmd_pulp/stomp/wallets  ]; then
+	mkdir ~/kmd_pulp/stomp/wallets
+fi
 ac_json=$(curl https://raw.githubusercontent.com/StakedChain/StakedNotary/master/assetchains.json 2>/dev/null)
 for row in $(echo "${ac_json}" | jq -c -r '.[]'); do
 	_jq() {
 		echo ${row} | jq -r ${1}
 	}
 	chain=$(_jq '.ac_name')
+	if [ ! -d ~/.komodo/${chain}  ]; then
+		echo -e "\e[91m [ $chain ] CONF FILE DOES NOT EXIST!"
+                echo -e "Run ~/Knomp/install/startStaked.sh first \e[39m"
+		exit 1
+	fi
 	if [ ! -f  ~/kmd_pulp/stomp/wallets/.${chain}_wallet ]; then
 		touch  ~/kmd_pulp/stomp/wallets/.${chain}_wallet
 		sudo chmod 600  ~/kmd_pulp/stomp/wallets/.${chain}_wallet

@@ -2,7 +2,7 @@
 
 # Any coins you would like to skip go here
 # -ac_perc coins are unminable at this stage
-declare -a skip=("BEER" "PIZZA" "STAKEDUH" "STAKEDCF")
+# declare -a skip=("BEER" "PIZZA" "STAKEDPERC" "STAKEDCF")
 
 # Stratum port to start
 stratumport=3030
@@ -40,6 +40,12 @@ for row in $(echo "${ac_json}" | jq -c -r '.[]'); do
     echo ${row} | jq -r ${1}
   }
   chain=$(_jq '.ac_name')
+  perc=$(_jq '.ac_perc')
+  staked=$(_jq '.ac_staked')
+  if [ $staked == null ]; then
+	staked=0
+  fi
+
 
   #Compare Asset Chain Names from json file to skip list
   if [[ " ${skip[@]} " =~ " ${chain} " ]]; then
@@ -47,7 +53,9 @@ for row in $(echo "${ac_json}" | jq -c -r '.[]'); do
   else
   	# todo: better path
 	if [ ! -f ~/kmd_pulp/stomp/wallets/.${chain}_wallet ]; then
-	    echo -e "\e[91m ** Addresses not yet set, run ./genaddr.sh first ** \e[39m"
+		echo -e "\e[91m ** Addresses not yet set, run ./genaddr.sh first ** \e[39m"
+	elif [ $perc != null ]; then
+		echo -e "\e[91m ** [$chain] AC_perc =  coin detected - incompatible with pool, omitting. ** \e[39m"
 	else
 	    walletaddress=$(cat ~/kmd_pulp/stomp/wallets/.${chain}_wallet | jq  -r '.addr')
 	    echo Configuring $chain with address: ${walletaddress}
@@ -60,7 +68,7 @@ for row in $(echo "${ac_json}" | jq -c -r '.[]'); do
 	    rpcuser=$(echo $thisconf | grep -Po "rpcuser=(\S*)" | sed 's/rpcuser=//')
 	    rpcpass=$(echo $thisconf | grep -Po "rpcpassword=(\S*)" | sed 's/rpcpassword=//')
 	    rpcport=$(echo $thisconf | grep -Po "rpcport=(\S*)" | sed 's/rpcport=//')
-	    echo "$cointemplate" | sed "s/COINNAMEVAR/$chain/" | sed "s/MAGICREVVAR/$magicrev/" > $coinsdir/$chain.json
+	    echo "$cointemplate" | sed "s/COINNAMEVAR/$chain/" | sed "s/MAGICREVVAR/$magicrev/"  | sed "s/STAKEDVAR/$staked/" > $coinsdir/$chain.json
 	    echo "$pooltemplate" | sed "s/P2PPORTVAR/$p2pport/" | sed "s/COINNAMEVAR/$chain/" | sed "s/WALLETADDRVAR/$walletaddress/" | sed "s/STRATUMPORTVAR/$stratumport/" | sed "s/RPCPORTVAR/$rpcport/" | sed "s/RPCUSERVAR/$rpcuser/" | sed "s/RPCPASSVAR/$rpcpass/" > $poolconfigdir/$chain.json
 
 	    echo "sudo ufw allow $stratumport comment 'Stratum $chain'" >> $ufwenablefile
