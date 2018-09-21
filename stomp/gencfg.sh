@@ -2,7 +2,7 @@
 
 # Any coins you would like to skip go here
 # -ac_perc coins are unminable at this stage
-declare -a skip=("BEER" "PIZZA" "STAKEDUH")
+declare -a skip=("BEER" "PIZZA" "STAKEDUH" "STAKEDCF")
 
 # Stratum port to start
 stratumport=3030
