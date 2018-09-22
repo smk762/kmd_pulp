@@ -19,6 +19,9 @@ printbalance () {
   echo "[$target] : $tgt_balance"
 }
 
+# use https://github.com/smk762/kmd_pulp/blob/master/Staked/staked-cli and link to /usr/local/bin
+staked-cli getbalance
+
 num_migrates=0
 ac_json=$(curl https://raw.githubusercontent.com/StakedChain/StakedNotary/master/assetchains.json 2>/dev/null)
 for row in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
@@ -42,12 +45,24 @@ for row in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
 		        	address=$(_jq '.[0]')
 				src_balance=`$cli_source getbalance`
 				tgt_balance=`$cli_target getbalance`
-			        if [ $( printf "%.0f" $src_balance) -gt $( printf "%.0f" $(echo $tgt_balance*1.1|bc)) ]; then
+			        if [ $( printf "%.0f" $src_balance) -gt $( printf "%.0f" $tgt_balance) ]; then
 			        	echo "Source $source balance: $src_balance"
 			        	echo "Target $target balance: $tgt_balance"
-						diff=$(echo $src_balance-$tgt_balance|bc)
-						spread=$(printf "%.0f" $(echo 2*$num_addr|bc))
-						amount=$(printf "%.0f" $(echo $diff/$spread|bc))
+					diff=$(printf "%.0f" $(echo $src_balance-$tgt_balance|bc))
+                                        if  [ $diff -lt 25 ]; then
+                                                echo "**** Skipping Migration  ************************************"
+                                                echo "**** $source chain balance is within 25 coins of $target chain at $(date) ****"
+                                                break
+                                        fi
+					spread=$(printf "%.0f" $(echo 2*$num_addr|bc))
+					if [ $spread -gt 5 ]; then
+ 						spread=5
+					fi
+					amount=$(printf "%.0f" $(echo $diff/$spread|bc))
+                                        if [ $amount -lt 2 ]; then
+                                                echo "**** Skipping Migration - amount less than 2 ************************************"
+						break
+                                        fi
 
 					num_migrates=$(echo $num_migrates+1|bc)
 					echo "**** Starting Migration #${num_migrates} ************************************"
@@ -124,7 +139,7 @@ for row in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
 			done
 		else
                         echo "**** Skipping Migration  ************************************"
-                        echo "**** $source chain is $target chain at $(date) ****"
+                        echo "**** Source $source chain is also target $target chain at $(date) ****"
 
 		fi
 	done
