@@ -40,7 +40,8 @@ for row in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
 	                		echo ${row} | jq -r ${1}
 			        }
 		        	address=$(_jq '.[0]')
-			        printbalance
+				src_balance=`$cli_source getbalance`
+				tgt_balance=`$cli_target getbalance`
 			        if [ $( printf "%.0f" $src_balance) -gt $( printf "%.0f" $(echo $tgt_balance*1.1|bc)) ]; then
 			        	echo "Source $source balance: $src_balance"
 			        	echo "Target $target balance: $tgt_balance"
@@ -48,7 +49,7 @@ for row in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
 						spread=$(printf "%.0f" $(echo 2*$num_addr|bc))
 						amount=$(printf "%.0f" $(echo $diff/$spread|bc))
 
-					let num_migrates=num_migrates+1
+					num_migrates=$(echo $num_migrates+1|bc)
 					echo "**** Starting Migration #${num_migrates} ************************************"
 			        	echo "**** Sending $amount from $source to $target address $address at $(date) ****"
 
@@ -116,8 +117,15 @@ for row in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
 				        echo "[$target] : Confirmed import $sent_iTX at $(date)"
 		        		printbalance
 		        		echo "********************************************************************************"
+				else
+                                        echo "**** Skipping Migration  ************************************"
+                                        echo "**** $source chain has less balance than $target chain at $(date) ****"
 			        fi
 			done
+		else
+                        echo "**** Skipping Migration  ************************************"
+                        echo "**** $source chain is $target chain at $(date) ****"
+
 		fi
 	done
 done
