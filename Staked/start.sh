@@ -31,8 +31,17 @@ echo "Finished: Checking chains are in sync..."
 kmdinfo=$(echo $(komodo-cli getinfo))
 kmd_blocks=$(echo ${kmdinfo} | jq -r '.blocks')
 kmd_longestchain=$(echo ${kmdinfo} | jq -r '.longestchain')
+
+# yet to test version checking - "longest chain can get lost quite easily on early chains, might need some extra check 
+# @webworker01 has some code that checks explorers heights, which might be a good way to go, but we have to have explorers up first.
+if [[ $kmd_longestchain == 0 ]]; then
+        echo -e "\e[91m ** [Incompatible Komodo version. Join #staked on discord at https://discord.gg/tKRzWe to get latest version. ** \e[39m"
+        exit 0;
+fi
+
 while [[ $kmd_blocks < $kmd_longestchain ]]; do
 	echo "[Komodo chain not syncronised. On block ${kmd_blocks} of ${kmd_longestchain}] $(echo $kmd_blocks/$kmd_longestchain*100 | bc)%"
+        echo "will check again in 30 seconds"
 	sleep 30
 done
 echo "[Komodo chain syncronised on block ${kmd_blocks}]"
@@ -44,13 +53,13 @@ for row in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
 	blocks=$(echo ${info} | jq -r '.blocks')
 	longestchain=$(echo ${info} | jq -r '.longestchain')
 
-
 	while [[ $blocks < $longestchain ]]; do
 	        echo "[${chain} chain not syncronised. On block ${blocks} of ${longestchain}] $(echo $blocks/$longestchain*100 | bc)%"
+		echo "will check again in 30 seconds"
         	sleep 30
 	done
-	echo "[${chain} chain syncronised on block ${kmd_blocks}]"
+	echo "[${chain} chain syncronised on block ${blocks}]"
 done
 
-echo "[ ALL CHAINS SYNC'd Starting Iguana..."
+echo "[ ALL CHAINS SYNC'd Starting Iguana... ]"
 ./start_iguana.sh
