@@ -180,9 +180,6 @@ migratePair() {
 	cli_target="komodo-cli -ac_name=$target"
 	balance="$($cli_source getbalance)"
 	overbalance=$(printf "%.0f" $(echo $balance-$average|bc))
-	if [ $overbalance -lt 5 ]; then
-		break
-	fi
 	target_balance="$($cli_target getbalance)"
 	underbalance=$(printf '%.0f' $(echo $target_balance-$average|bc))
 	diff=$(echo $overbalance+$underbalance|bc)
@@ -202,9 +199,6 @@ migratePair() {
 
 	if [ $amount -lt 5 ]; then
 		amount=5;
-	fi
-	if [ $amount -lt $overbalance ]; then
-		amount=$overbalance
 	fi
 	for address in $(echo "${addresses}" | jq -c -r '.[][][0]'); do
 		progress="$count/$spread"
