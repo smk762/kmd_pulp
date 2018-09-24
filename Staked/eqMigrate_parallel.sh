@@ -200,7 +200,13 @@ migratePair() {
 	if [ $amount -lt 5 ]; then
 		amount=5;
 	fi
+	if [ $amount -gt $overbalance ]; then
+		amount=$overbalance;
+	fi
 	for address in $(echo "${addresses}" | jq -c -r '.[][][0]'); do
+		if [ $overbalance -lt 5 ]; then
+			break 
+		fi
 		progress="$count/$spread"
 		migration_ID=$(echo -e "$color[$source -- ($amount) --> $target ($progress)) { $address }]: $col_default ")
 		if [ $count -lt $spread ]; then
