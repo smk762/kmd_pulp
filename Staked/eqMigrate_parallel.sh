@@ -129,7 +129,7 @@ migrate() {
 		sent=0
 		tries=0
 		while [[ $sent -eq 0 ]]; do
-			echo "$migration_ID \e[90m[completeTX] $completeTX\e[39m"
+			echo -e "$migration_ID \e[90m[completeTX] $completeTX\e[39m"
 			echo "Sending raw transaction to [$target]"
 			sent_iTX=$(echo $($cli_target sendrawtransaction $completeTX) 2> /dev/null)
 			echo "$migration_ID Step 9: Broadcasting migration at $(date)"
