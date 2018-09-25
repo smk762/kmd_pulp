@@ -6,7 +6,8 @@ for row in $(echo "${ac_json}" | jq -c -r '.[]'); do
      		echo ${row} | jq -r ${1}
     	}
 	chain=$(_jq '.ac_name')
-
+	echo $chain
+echo "sds"
 
             info=$(komodo-cli -ac_name=$name getinfo)
             txinfo=$(komodo-cli -ac_name=$name listtransactions "" $txscanamount)
