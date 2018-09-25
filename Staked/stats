@@ -1,0 +1,61 @@
+#!/bin/bash
+IFS=
+
+
+#Change to sleepytime=false if you don't want it to loop
+sleepytime=600
+utxoamt=0.00010000
+ntrzdamt=-0.00083600
+
+kmdntrzaddr=RQVvzJ8gepCDVjhqCAc5Tia1kTmt8KDPL9
+
+#How many transactions back to scan for notarizations
+txscanamount=77777
+
+format="%-8s %7s %6s %7s %12s\n"
+
+outputstats ()
+{
+    count=0
+    now=$(date +"%Y-%m-%d %T%z")
+
+    printf "\n\n%-8s %7s %6s %7s %12s\n" "-ASSET-" "-NTRZd-" "-UTXO-" "-BLOX-" "-BALANCE-";
+
+    kmdinfo=$(komodo-cli getinfo)
+    printf "$format" "KMD" \
+            "$(komodo-cli listtransactions "" $txscanamount | grep $kmdntrzaddr | wc -l)" \
+            "$(komodo-cli listunspent | grep $utxoamt | wc -l)" \
+            "$(echo $kmdinfo | awk ' /\"blocks\"/ {printf $2}' | sed 's/,//')" \
+            "$(echo $kmdinfo | awk ' /\"balance\"/ {printf $2}' | sed 's/,//')" \
+
+
+	ac_json=$(curl https://raw.githubusercontent.com/StakedChain/StakedNotary/master/assetchains.json 2>/dev/null)
+	for row in $(echo "${ac_json}" | jq -c -r '.[]'); do
+        	_jq() {
+                	echo ${row} | jq -r ${1}
+	        }
+        	name=$(_jq '.ac_name')
+	        info=$(komodo-cli -ac_name=$name getinfo)
+        	txinfo=$(komodo-cli -ac_name=$name listtransactions "" $txscanamount)
+
+	            printf "$format" "$name" \
+                    "$(echo $txinfo | grep -- $kmdntrzaddr | wc -l)" \
+                    "$(komodo-cli -ac_name=$name listunspent | grep $utxoamt | wc -l)" \
+                    "$(echo $info | awk ' /\"blocks\"/ {printf $2}' | sed 's/,//')" \
+                    "$(echo $info | awk ' /\"balance\"/ {printf $2}' | sed 's/,//')" 
+        	count=$(( $count +1 ))
+	done
+	printf "$now";
+}
+
+if [ "$sleepytime" != "false" ]
+then
+    while true
+    do
+        outputstats
+        sleep $sleepytime
+    done
+else
+    outputstats
+    echo
+fi
