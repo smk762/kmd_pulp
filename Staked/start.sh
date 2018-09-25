@@ -1,13 +1,14 @@
 #!/bin/bash
 # Fetch pubkey
-pubkey=$(./printkey.py pub)
+cd /home/$USER/StakedNotary
+pubkey=$(/home/$USER/StakedNotary/printkey.py pub)
 
 # Start KMD
 echo "[KMD] : Starting KMD"
 komodod -notary -pubkey=$pubkey > /dev/null 2>&1 &
 
 # Start assets
-if [[ $(./assetchains) = "finished" ]]; then
+if [[ $(/home/$USER/StakedNotary/assetchains) = "finished" ]]; then
   echo "Started Assetchains"
 else
   echo "Starting Assetchains Failed: help human!"
@@ -16,15 +17,15 @@ fi
 
 # Validate Address on KMD + AC, will poll deamon until started then check if address is imported, if not import it.
 echo "[KMD] : Checking your address and importing it if required."
-echo "[KMD] : $(./validateaddress.sh KMD)"
-./listassetchains.py | while read chain; do
+echo "[KMD] : $(/home/$USER/StakedNotary/validateaddress.sh KMD)"
+/home/$USER/StakedNotary/listassetchains.py | while read chain; do
   # Move our auto generated coins file to the iguana coins dir
   chmod +x "$chain"_7776
   mv "$chain"_7776 iguana/coins
-  echo "[$chain] : $(./validateaddress.sh $chain)"
+  echo "[$chain] : $(/home/$USER/StakedNotary/validateaddress.sh $chain)"
 done
 echo "Building Iguana"
-./build_iguana
+$(/home/$USER/StakedNotary/build_iguana)
 
 echo "Finished: Checking chains are in sync..."
 
@@ -62,4 +63,4 @@ for row in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
 done
 
 echo "[ ALL CHAINS SYNC'd Starting Iguana... ]"
-./start_iguana.sh
+/home/$USER/StakedNotary/start_iguana.sh
