@@ -3,7 +3,7 @@
 cd /home/$USER/Knomp/install
 ./startStaked.sh &
 komodod
-sleep 30
+sleep 60
 cd ..
 nohup npm start &
-tail -f nohup.out
+#tail -f nohup.out

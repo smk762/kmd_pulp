@@ -7,8 +7,6 @@ spread=5
 sources=()
 targets=()
 address_list=()
-pending_migrations=0
-complete_migrations=0
 col_red="\e[31m"
 col_green="\e[32m"
 col_yellow="\e[33m"
@@ -33,29 +31,6 @@ printbalance () {
   tgt_balance=$(echo $($cli_target getbalance))
   echo "[$source] : $src_balance"
   echo "[$target] : $tgt_balance"
-}
-
-update_range() {
-	now_range=0
-	while [ $now_range -gt 10 ]; do
-		now_min=99999999
-		now_max=0
-		for chain in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
-	  	  balance="$(printf '%.0f' $(komodo-cli -ac_name=$chain getbalance))"
-		  if [ $balance -lt $now_min ]; then
-		  	now_min=$balance
-		  fi
-		  if [  $balance -gt $now_max ]; then
-			now_max=$balance
-		  fi
-		done
-		now_range=$(echo $max-$min|bc)
-		if [ $now_range -lt 10 ]; then
-			echo "Balances range is less than  10, script complete."
-			exit 0;
-		fi
-		sleep 300
-	done
 }
 
 migrate() {
@@ -187,68 +162,27 @@ migrate() {
 		echo -e "\e[95m================== $migration_ID MIGRATION COMPLETED in $migrate_duration minutes ===================="
 		printbalance
 		echo -e "============================================================================================================${col_default}"
-	  	complete_migrations=$(echo $complete_migrations+1|bc)
-		echo "$complete_migrations / $pending_migrations migrations complete."
 }
 
 migratePair() {	
 	local source=$1
 	local target=$2
 	local color=$3
+	local amount=$4
 	# Alias for running cli
 	cli_source="komodo-cli -ac_name=$source"
 	cli_target="komodo-cli -ac_name=$target"
-	balance="$($cli_source getbalance)"
-	overbalance=$(printf "%.0f" $(echo $balance-$average|bc))
-	target_balance="$($cli_target getbalance)"
-	underbalance=$(printf '%.0f' $(echo $target_balance-$average|bc))
-	diff=$(echo $overbalance+$underbalance|bc)
-	if [ $diff -lt 0 ]; then
-		send_sum=$overbalance
-	else
-		send_sum=${underbalance#-}
-	fi
 	addresses=$($(echo komodo-cli -ac_name=$target listaddressgroupings))	
 	num_addr=$(echo $addresses | jq '.[] | length')
-	echo -e "\e[94m$num_addr addresses at $target ${col_default}"
-	while [ $num_addr -lt 5 ]; do
-		address_zero=$(echo $addresses | jq -r '.[][0] ')
-		echo "Less than 5 active addresses at $target, reusing ${address_zero}"
-		addresses+=(${address_zero})
-		num_addr=$(echo $num_addr+1|bc)
-	done
 	count=1
-	if [ $num_addr -lt $spread ]; then 
-		spread=$num_addr
-	fi 
-	amount=$(printf "%.0f" $(echo $send_sum/$spread|bc))
-
-	if [ $amount -lt 5 ]; then
-		amount=5;
-	fi
-	if [ $amount -gt $overbalance ]; then
-		amount=$overbalance;
-	fi
 	for address in $(echo "${addresses}" | jq -c -r '.[][][0]'); do
-		if [ $overbalance -lt 5 ]; then
-			break 
-		fi
 		progress="$count/$spread"
 		migration_ID=$(echo -e "$color[$source -- ($amount) --> $target ($progress)) { $address }]: $col_default ")
-		if [ $count -lt $spread ]; then
-			#echo "$migration_ID Creating TX $count/$spread"
-		    target_balance="$($cli_target getbalance)"
-		    underbalance=$(printf '%.0f' $(echo $target_balance-$average|bc))
-		    if [ ${underbalance#-} -lt 10 ]; then
-		    	echo -e "$migration_ID \e[93mTarget balance ($target_balance) within 10 of average ($average), starting equalisation of next pair.${col_default}"
-			  	complete_migrations=$(echo $complete_migrations+1|bc)
-		    	break
-		    else
-		  		migrate $source $target $amount $address $color &
-		  		sleep 120
-				count=$(echo $count+1|bc)
-			fi
-		fi
+		#echo "$migration_ID Creating TX $count/$spread"
+		target_balance="$($cli_target getbalance)"
+		underbalance=$(printf '%.0f' $(echo $target_balance-$average|bc))
+		migrate $source $target $amount $address $color &
+		sleep 120
   	done
 }
 
@@ -277,16 +211,8 @@ range=$(echo $max-$min|bc)
 average=$(echo $total_balance/$num_chains|bc)
 
 for chain in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
-	balance="$(komodo-cli -ac_name=$chain getbalance)"
-	delta=$(printf '%.0f' $(echo $balance-$average|bc))
-	if [ $delta -gt 0 ]; then
-
-		echo -e "$chain balance = $(echo $balance)\e[94m (Adding to sources) - $delta coins to spare. ${col_default}"
-		sources+=($chain)
-	else
-		echo -e "$chain balance = $(echo $balance)\e[93m (Adding to targets) - needs ${delta#-} coins. ${col_default}"
-		targets+=($chain)
-	fi
+	sources+=($chain)
+	targets+=($chain)
 done
 echo -e "\e[92m[TOTAL BALANCE :  ${total_balance}]${col_default}"
 echo -e "\e[92m[Average balance = ${average}]${col_default}"
@@ -301,7 +227,7 @@ for source in ${sources[@]}; do
   script_start=$SECONDS
   for target in ${targets[@]}; do
   	pairColor=${colors[${colorIndex}]}
-  	migratePair $source $target $pairColor &
+  	migratePair $source $target $pairColor 10 &
   	colorIndex=$(echo $colorIndex+1|bc)
   	if [ $colorIndex -ge ${#colors[@]} ]; then
   		colorIndex=0;
