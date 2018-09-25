@@ -1,5 +1,4 @@
 #!/bin/bash
-IFS=
 
 
 #Change to sleepytime=false if you don't want it to loop
@@ -13,9 +12,10 @@ kmdntrzaddr=RQVvzJ8gepCDVjhqCAc5Tia1kTmt8KDPL9
 txscanamount=77777
 
 format="%-8s %7s %6s %7s %12s\n"
-
+ac_json=$(curl https://raw.githubusercontent.com/StakedChain/StakedNotary/master/assetchains.json 2>/dev/null)
 outputstats ()
 {
+IFS=
     count=0
     now=$(date +"%Y-%m-%d %T%z")
 
@@ -26,25 +26,22 @@ outputstats ()
             "$(komodo-cli listtransactions "" $txscanamount | grep $kmdntrzaddr | wc -l)" \
             "$(komodo-cli listunspent | grep $utxoamt | wc -l)" \
             "$(echo $kmdinfo | awk ' /\"blocks\"/ {printf $2}' | sed 's/,//')" \
-            "$(echo $kmdinfo | awk ' /\"balance\"/ {printf $2}' | sed 's/,//')" \
+            "$(echo $kmdinfo | awk ' /\"balance\"/ {printf $2}' | sed 's/,//')"
+
+unset IFS
+for name in $(echo $ac_json | jq  -r '.[].ac_name'); do
 
 
-	ac_json=$(curl https://raw.githubusercontent.com/StakedChain/StakedNotary/master/assetchains.json 2>/dev/null)
-	for row in $(echo "${ac_json}" | jq -c -r '.[]'); do
-        	_jq() {
-                	echo ${row} | jq -r ${1}
-	        }
-        	name=$(_jq '.ac_name')
-	        info=$(komodo-cli -ac_name=$name getinfo)
-        	txinfo=$(komodo-cli -ac_name=$name listtransactions "" $txscanamount)
+            info=$(komodo-cli -ac_name=$name getinfo)
+            txinfo=$(komodo-cli -ac_name=$name listtransactions "" $txscanamount)
 
-	            printf "$format" "$name" \
+            printf "$format" "$name" \
                     "$(echo $txinfo | grep -- $kmdntrzaddr | wc -l)" \
                     "$(komodo-cli -ac_name=$name listunspent | grep $utxoamt | wc -l)" \
-                    "$(echo $info | awk ' /\"blocks\"/ {printf $2}' | sed 's/,//')" \
-                    "$(echo $info | awk ' /\"balance\"/ {printf $2}' | sed 's/,//')" 
-        	count=$(( $count +1 ))
-	done
+                    "$(echo $info | awk ' /\"blocks\"/ {printf $27}' | sed 's/,//')" \
+"$(echo $info | awk ' /\"balance\"/ {printf $25}' | sed 's/,//')"
+done
+
 	printf "$now";
 }
 

@@ -1,14 +1,14 @@
 #!/bin/bash
 # Fetch pubkey
 cd /home/$USER/StakedNotary
-pubkey=$(/home/$USER/StakedNotary/printkey.py pub)
+pubkey=$(./printkey.py pub)
 
 # Start KMD
 echo "[KMD] : Starting KMD"
 komodod -notary -pubkey=$pubkey > /dev/null 2>&1 &
 
 # Start assets
-if [[ $(/home/$USER/StakedNotary/assetchains) = "finished" ]]; then
+if [[ $(./assetchains) = "finished" ]]; then
   echo "Started Assetchains"
 else
   echo "Starting Assetchains Failed: help human!"
@@ -17,15 +17,15 @@ fi
 
 # Validate Address on KMD + AC, will poll deamon until started then check if address is imported, if not import it.
 echo "[KMD] : Checking your address and importing it if required."
-echo "[KMD] : $(/home/$USER/StakedNotary/validateaddress.sh KMD)"
-/home/$USER/StakedNotary/listassetchains.py | while read chain; do
+echo "[KMD] : $(./validateaddress.sh KMD)"
+./listassetchains.py | while read chain; do
   # Move our auto generated coins file to the iguana coins dir
   chmod +x "$chain"_7776
   mv "$chain"_7776 iguana/coins
-  echo "[$chain] : $(/home/$USER/StakedNotary/validateaddress.sh $chain)"
+  echo "[$chain] : $(./validateaddress.sh $chain)"
 done
 echo "Building Iguana"
-$(/home/$USER/StakedNotary/build_iguana)
+./build_iguana
 
 echo "Finished: Checking chains are in sync..."
 
@@ -41,7 +41,8 @@ if [[ $kmd_longestchain == 0 ]]; then
 fi
 
 while [[ $kmd_blocks < $kmd_longestchain ]]; do
-	echo "[Komodo chain not syncronised. On block ${kmd_blocks} of ${kmd_longestchain}] $(echo $kmd_blocks/$kmd_longestchain*100 | bc)%"
+	kmd_progress=$(echo $kmd_blocks/$kmd_longestchain|bc)
+	echo "[Komodo chain not syncronised. On block ${kmd_blocks} of ${kmd_longestchain}] $(echo $progress*100|bc)%"
         echo "will check again in 30 seconds"
 	sleep 30
 done
@@ -55,7 +56,8 @@ for row in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
 	longestchain=$(echo ${info} | jq -r '.longestchain')
 
 	while [[ $blocks < $longestchain ]]; do
-	        echo "[${chain} chain not syncronised. On block ${blocks} of ${longestchain}] $(echo $blocks/$longestchain*100 | bc)%"
+		progress=$(echo blocks/longestchain|bc)
+	        echo "[${chain} chain not syncronised. On block ${blocks} of ${longestchain}] $(echo $progress*100 | bc)%"
 		echo "will check again in 30 seconds"
         	sleep 30
 	done
@@ -63,4 +65,4 @@ for row in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
 done
 
 echo "[ ALL CHAINS SYNC'd Starting Iguana... ]"
-/home/$USER/StakedNotary/start_iguana.sh
+./start_iguana.sh
