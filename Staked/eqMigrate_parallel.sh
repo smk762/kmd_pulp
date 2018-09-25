@@ -7,6 +7,8 @@ spread=5
 sources=()
 targets=()
 address_list=()
+pending_migrations=0
+complete_migrations=0
 col_red="\e[31m"
 col_green="\e[32m"
 col_yellow="\e[33m"
@@ -42,6 +44,7 @@ update_range() {
 	  	  balance="$(printf '%.0f' $(komodo-cli -ac_name=$chain getbalance))"
 		  if [ $balance -lt $now_min ]; then
 		  	now_min=$balance
+		  fi
 		  if [  $balance -gt $now_max ]; then
 			now_max=$balance
 		  fi
@@ -184,9 +187,8 @@ migrate() {
 		echo -e "\e[95m================== $migration_ID MIGRATION COMPLETED in $migrate_duration minutes ===================="
 		printbalance
 		echo -e "============================================================================================================${col_default}"
-
-				count=$(echo $count+1|bc)
-
+	  	complete_migrations=$(echo $complete_migrations+1|bc)
+		echo "$complete_migrations / $pending_migrations migrations complete."
 }
 
 migratePair() {	
@@ -209,10 +211,11 @@ migratePair() {
 	addresses=$($(echo komodo-cli -ac_name=$target listaddressgroupings))
 	num_addr=$(echo $addresses | jq '.[] | length')
 	# echo -e "\e[94m$num_addr addresses at target $2${col_default}"
-	while [ $num_addr -lt 5 ]; then
-		echo "Less than 5 active addresses at target, reusing ${addresses[0]}"
+	while [ $num_addr -lt 5 ]; do
+		echo "Less than 5 active addresses at target, reusing ${addresses[][][0]}"
 		addresses+=(${addresses[0]})
-	fi
+		num_addr=$(echo $num_addr+1|bc)
+	done
 	count=1
 	if [ $num_addr -lt $spread ]; then 
 		spread=$num_addr
@@ -237,6 +240,7 @@ migratePair() {
 		    underbalance=$(printf '%.0f' $(echo $target_balance-$average|bc))
 		    if [ ${underbalance#-} -lt 10 ]; then
 		    	echo -e "$migration_ID \e[93mTarget balance ($target_balance) within 10 of average ($average), starting equalisation of next pair.${col_default}"
+			  	complete_migrations=$(echo $complete_migrations+1|bc)
 		    	break
 		    else
 		  		migrate $source $target $amount $address $color &
@@ -263,6 +267,7 @@ for chain in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
   total_balance=$(echo $balance+$total_balance|bc)
   if [ $balance -lt $min ]; then
   	min=$(printf '%.0f' $(echo $balance))
+  fi
   if [  $balance -gt $max ]; then
 	max=$(printf '%.0f' $(echo $balance))
   fi
@@ -313,4 +318,3 @@ for chain in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
   echo "$chain balance = $(echo $balance)"
   total_balance=$(echo $balance+$total_balance|bc)
 done
-exit 0;
