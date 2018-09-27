@@ -1,0 +1,10 @@
+npm ERR! path /home/smk762/kmd_pulp/package.json
+npm ERR! code ENOENT
+npm ERR! errno -2
+npm ERR! syscall open
+npm ERR! enoent ENOENT: no such file or directory, open '/home/smk762/kmd_pulp/package.json'
+npm ERR! enoent This is related to npm not being able to find a file.
+npm ERR! enoent 
+
+npm ERR! A complete log of this run can be found in:
+npm ERR!     /home/smk762/.npm/_logs/2018-09-26T11_42_45_103Z-debug.log

@@ -1,6 +1,6 @@
 #!/bin/bash
 /home/$USER/Knomp/install/redis-stable/src/redis-server /home/$USER/Knomp/install/redis-stable/redis.conf &
-cd /home/$USER/Knomp/install
+cd /home/$USER/kmd_pulp/stomp
 ./startStaked.sh &
 komodod
 sleep 60
