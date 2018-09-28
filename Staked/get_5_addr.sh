@@ -92,3 +92,5 @@ for chain in ${chains[@]}; do
 
 	fi
 done
+# clean up wallet info json
+# sed 's/}{/},{/g' x.txt
