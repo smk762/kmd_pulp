@@ -1,14 +1,7 @@
 #!/bin/bash
 
 # This script creates transactions to quickly migrate your balance evenly across all active chains on the same -ac_cc id
-total_balance=0
-num_migrates=0
-spread=5
-sources=()
-targets=()
 addr_list=()
-pending_migrations=0
-complete_migrations=0
 col_red="\e[31m"
 col_green="\e[32m"
 col_yellow="\e[33m"
@@ -17,8 +10,12 @@ col_magenta="\e[35m"
 col_cyan="\e[36m"
 col_default="\e[39m"
 colors=($col_red $col_green $col_yellow $col_blue $col_magenta $col_cyan)
-
-
+if [ -z $1 ]; then
+	address_req=5
+else
+	address_req=$1
+fi
+echo $address_req
 
 prompt_confirm() {
   while true; do
@@ -42,9 +39,17 @@ done
 colorIndex=0
 for chain in ${chains[@]}; do
 	addresses=()
-	num_addr=$(komodo-cli -ac_name=${chain} listaddressgroupings | jq -r '.[] | length')
-	if [ -z $num_addr ] || [ $num_addr -lt 5  ]; then 
-		echo -e "\e[91m WARNING: You have less than 5 active addresses for ${chain}."
+	addrss=$(komodo-cli -ac_name=${chain} listaddressgroupings | jq -r '.[][][0]')
+	for addr in $addrss; do
+		addresses+=($addr)
+	done
+	num_addr=${#addresses[@]}
+	if [ -z $num_addr ]; then
+		num_addr=0
+	fi
+	if [ $num_addr -lt $address_req  ]; then
+		selected_addr=$addresses
+		echo -e "\e[91m WARNING: You have less than $address_req active addresses for ${chain}."
 		echo " This script creates an addresses to be used for cross chain coin migration."
 		echo " The address, privkey, and pubkey are stored in a owner read-only file"
 		echo -e "Make sure to encrypt, backup, or delete as required \e[39m"
@@ -59,38 +64,34 @@ for chain in ${chains[@]}; do
 		fi
 		if [ ! -f  ~/wallets/.${chain}_wallet ]; then
 			touch  ~/wallets/.${chain}_wallet
-			sudo chmod 600  ~/wallets/.${chain}_wallet
+			chmod 600  ~/wallets/.${chain}_wallet
 		fi
-		for i in {1..5}; do
+
+		for (( i=${#selected_addr[@]}; i<$address_req; i++ )); do
 			address=$(komodo-cli -ac_name=$chain getnewaddress)
 			echo "Created $address for [ $chain ]"
 			echo { \"chain\":\"${chain}\", >> ~/wallets/.${chain}_wallet
 			echo \"addr\":\"${address}\", >> ~/wallets/.${chain}_wallet
 			echo \"pk\":\"$(komodo-cli -ac_name=${chain} dumpprivkey $address)\", >> ~/wallets/.${chain}_wallet
 			echo \"pub\":\"$(komodo-cli -ac_name=${chain} validateaddress $address | jq -r '.pubkey')\" } >> ~/wallets/.${chain}_wallet
-			addresses+=($address)
+			selected_addr+=($address)
 		done
+		num_addr=${#selected_addr[@]}
+		# clean up the json
+		echo $(cat ~/wallets/.${chain}_wallet | sed 's/[][]//g') > ~/wallets/.${chain}_wallet 
+		echo $(cat ~/wallets/.${chain}_wallet | tr -d '\n') > ~/wallets/.${chain}_wallet
+		echo $(cat ~/wallets/.${chain}_wallet | sed 's/} {/},\n{/g') > ~/wallets/.${chain}_wallet
+		echo \[$(cat ~/wallets/.${chain}_wallet)\] > ~/wallets/.${chain}_wallet
+		echo $(cat ~/wallets/.${chain}_wallet | sed '/},/{G;}') > ~/wallets/.${chain}_wallet
+		# cat ~/wallets/.${chain}_wallet
 		echo -e "\e[92m Finished: Your address info is located in ~/wallets \e[39m"
-		first_addr=$address
-		echo "$chain has 5 addresses."
-		echo "first address is : $first_addr"
-		echo "addr list: ${addresses[@]}"
 	else
-
-		first_addr=$(komodo-cli -ac_name=$chain listaddressgroupings | jq -r '.[][0][0]')
-		addr_list="$(komodo-cli -ac_name=$chain listaddressgroupings | jq -r '.[][][0]')"
-		addresses=()
-		for addr in $addr_list; do
-			for i in {1..5}; do
-				addresses+=($addr)
-			done
-			break
+		selected_addr=()
+		for (( i=0; i<$address_req; i++ )); do
+				selected_addr+=(${addresses[${i}]})
 		done
-			echo "$chain has $num_addr addresses."
-			echo "first address is : $first_addr"
-			echo "addr list: ${addresses[@]}"
-
 	fi
+	echo "$chain has $num_addr addresses (${#selected_addr[@]} selected)."
+	echo "Selected address list: ${selected_addr[@]}"
 done
 # clean up wallet info json
-# sed 's/}{/},{/g' x.txt
