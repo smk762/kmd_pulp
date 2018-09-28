@@ -1,6 +1,7 @@
 #!/bin/bash
-echo "Checking chains are in sync..."
 
+# See ./start.sh for looped implementation on Notary Node launch.
+echo "Checking chains are in sync..."
 let numchains=1
 let count=0;
 kmdinfo=$(echo $(komodo-cli getinfo))
@@ -37,4 +38,3 @@ if [[ $count == $numchains ]]; then
 else
         echo "[ NOT ALL CHAINS IN SYNC (${count} / ${numchains}) ]"
 fi
-

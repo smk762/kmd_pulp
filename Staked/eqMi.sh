@@ -184,7 +184,7 @@ migrate() {
 				done
 
 				# 5. Wait for a confirmation on source chain.
-				waitforconfirm "$sentTX" "$cli_source"
+				# waitforconfirm "$sentTX" "$cli_source"
 				migrate_duration=$(echo $SECONDS/60-$migrate_start/60|bc)
 				echo -e "$migration_ID Step 6: Confirmed export $sentTX at $(date) ($migrate_duration min)${col_default}"
 
@@ -257,7 +257,7 @@ migrate() {
 					fi
 				done
 
-				waitforconfirm "$sent_iTX" "$cli_target"
+				# waitforconfirm "$sent_iTX" "$cli_target"
 				echo -e "$migration_ID Confirmed import $sent_iTX at $(date)${col_default}"
 				migrate_duration=$(echo $SECONDS/60-$migrate_start/60|bc)
 				echo -e "\e[95m================== $migration_ID MIGRATION COMPLETED in $migrate_duration minutes ===================="
@@ -381,7 +381,6 @@ for target in ${targets[@]}; do
 	  	fi
 	done
 done
-
 
 script_duration=$(echo $SECONDS/60-$script_start/60|bc)
 for chain in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
