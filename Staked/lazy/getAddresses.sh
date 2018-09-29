@@ -35,8 +35,6 @@ for chain in $(echo "${ac_json}" | jq  -r '.[].ac_name'); do
 	chains+=($chain)
 done
 
-
-colorIndex=0
 for chain in ${chains[@]}; do
 	addresses=()
 	addrss=$(komodo-cli -ac_name=${chain} listaddressgroupings | jq -r '.[][][0]')
