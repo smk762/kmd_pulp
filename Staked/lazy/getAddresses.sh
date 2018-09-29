@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# This script creates transactions to quickly migrate your balance evenly across all active chains on the same -ac_cc id
 addr_list=()
 col_red="\e[31m"
 col_green="\e[32m"
