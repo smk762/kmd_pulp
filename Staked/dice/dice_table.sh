@@ -11,6 +11,17 @@ col_dkgrey="\e[90m"
 colors=($col_red $col_green $col_yellow $col_blue $col_magenta $col_cyan)
 
 
+prompt_confirm() {
+  while true; do
+    read -r -n 1 -p "${1:-Continue?} [y/n]: " REPLY
+    case $REPLY in
+      [yY]) echo ; return 0 ;;
+      [nN]) echo ; return 1 ;;
+      *) printf " \033[31m %s \n\033[0m" "invalid input"
+    esac
+  done
+}
+
 
 # Set chain dice is being played on
 if [[ -z $1 ]]; then
@@ -62,7 +73,7 @@ myCCaddress=$(echo $dice_addrInfo | jq -r '.myCCaddress')
 CCaddress=$(echo $dice_addrInfo | jq -r '.CCaddress')
 Dicemarker=$(echo $dice_addrInfo | jq -r '.Dicemarker')
 
-if [[ $(cat ~/wallets/.STAKEDB1_wallet | grep $myaddress) == "" ]]; then
+if [[ $(cat ~/wallets/.${ac_name}_wallet | grep $myaddress) == "" ]]; then
   echo -e "${col_cyan}Storing your DiceWallet address $myaddress for $ac_name in  ~/wallets/.${ac_name}_wallet${col_default}"
 
 
@@ -83,50 +94,85 @@ fi
 
 # use pub key from dice address in your wallet
 pubkey=$(komodo-cli -ac_name=${ac_name} validateaddress $myaddress | jq -r '.pubkey')
-balance=$(komodo-cli -ac_name=$ac_name getbalance)
+balance=$(printf '%.0f' $(komodo-cli -ac_name=$ac_name getbalance))
 echo -e "===== ${col_magenta} You have $balance $ac_name to bet using pubkey $pubkey ====="
 
 
-# set player name
-table_name="photon"
-# use pub key from address in your wallet
-funds=300
-minbet=5
-maxbet=5
-maxodds=5
-timeout=2
-
-prompt_confirm() {
-  while true; do
-    read -r -n 1 -p "${1:-Continue?} [y/n]: " REPLY
-    case $REPLY in
-      [yY]) echo ; return 0 ;;
-      [nN]) echo ; return 1 ;;
-      *) printf " \033[31m %s \n\033[0m" "invalid input"
-    esac
+  while [[ true ]]; do
+    echo -e "${col_blue}"
+    read -p "Set table name: " table_name
+    echo -e "${col_default}"
+    break
   done
-}
 
-selectNumber() {
-  while true; do
-    read -r -n 1 -p "${1:- **** Select $1 **** } [1-$2]: " REPLY
-    case $REPLY in
-      [1]) echo ; return 1 ;;
-      [2]) echo ; return 2 ;;
-      [3]) echo ; return 3 ;;
-      [4]) echo ; return 4 ;;
-      [5]) echo ; return 5 ;;
-      [6]) echo ; return 6 ;;
-      [7]) echo ; return 7 ;;
-      [8]) echo ; return 8 ;;
-      [9]) echo ; return 9 ;;
-      *) printf " \033[31m %s \n\033[0m" "invalid input"
-    esac
+
+  while [[ true ]]; do
+    echo -e "${col_blue}"
+    read -p "Set Funds (100 minimum - Go low & send more utxos later.): " funds
+    echo -e "${col_default}"
+    if [ $funds -ge 0 2>/dev/null ]; then  
+      if [[ $funds -gt $balance ]]; then
+        echo -e "${col_ltred}Insufficient funds, try again${col_default}"
+      elif [[ $funds -lt 100 ]]; then
+        echo -e "${col_ltred}Table minimum is 100 $ac_name, try again${col_default}"
+      else
+        break
+      fi
+    else
+      echo -e "${col_ltred}Invalid input, try again.${col_default}"
+    fi
   done
-}
 
-#dicefund name funds minbet maxbet maxodds timeoutblocks
 
+  while [[ true ]]; do
+    echo -e "${col_blue}"
+    read -p "Set minbet: " minbet
+    echo -e "${col_default}"
+    if [ $minbet -ge 0 2>/dev/null ]; then  
+      minbet=$minbet
+    break
+    else
+      echo -e "${col_ltred}Invalid input, try again.${col_default}"
+    fi
+  done
+
+  while [[ true ]]; do
+    echo -e "${col_blue}"
+    read -p "Set maxbet: " maxbet
+    echo -e "${col_default}"
+    if [ $maxbet -ge 0 2>/dev/null ]; then  
+      maxbet=$maxbet
+    break
+    else
+      echo -e "${col_ltred}Invalid input, try again.${col_default}"
+    fi
+  done
+
+  while [[ true ]]; do
+    echo -e "${col_blue}"
+    read -p "Set maxodds: " maxodds
+    echo -e "${col_default}"
+    if [ $maxodds -ge 0 2>/dev/null ]; then  
+      maxodds=$maxodds
+    break
+    else
+      echo -e "${col_ltred}Invalid input, try again.${col_default}"
+    fi
+  done
+
+
+  while [[ true ]]; do
+    echo -e "${col_blue}"
+    read -p "Set timeout: " timeout
+    echo -e "${col_default}"
+    if [ $timeout -ge 0 2>/dev/null ]; then  
+      timeout=$timeout
+    break
+    else
+      echo -e "${col_ltred}Invalid input, try again.${col_default}"
+    fi
+  done
+echo "-ac_name=$ac_name dicefund $table_name $funds $minbet $maxbet $maxodds $timeout)"
 table=$(komodo-cli -ac_name=$ac_name dicefund $table_name $funds $minbet $maxbet $maxodds $timeout)
 table_hex=$(echo $table | jq -r '.hex')
 echo $table_hex
@@ -142,13 +188,14 @@ while [ -z "$confirmbet" ]; do
 	sleep 10
 
 	rawmempool=$(komodo-cli -ac_name=$ac_name getrawmempool)"."
-confirmbet=$(echo $rawmempool | jq '.[]' | grep $table_txid)
+  confirmbet=$(echo $rawmempool | jq '.[]' | grep $table_txid)
 done
 echo -e "${col_green}Table confirmed in mempool with with txid: $confirmbet${col_default}"
 sleep 5
 diceTables=$(komodo-cli -ac_name=$ac_name dicelist)
 diceList=$(echo $diceTables | jq -r '.[]')
 numTables=${#diceList[@]}
+sleep 5
 echo -e "${col_green} ---- DICE TABLES ---- ${col_yellow}"
 i=1
 for table in $diceList; do
@@ -156,25 +203,52 @@ for table in $diceList; do
 	((i=$i+1))
 done
 
-#prompt_confirm "Fund table?" || exit 0
+
+prompt_confirm "Fund table with extra utxos?" || exit
+
+
+  while [[ true ]]; do
+    echo -e "${col_blue}"
+    read -p "How many utxos?: " utxo_count
+    echo -e "${col_default}"
+    if [ $utxo_count -ge 0 2>/dev/null ]; then  
+      utxo_count=$utxo_count
+    break
+    else
+      echo -e "${col_ltred}Invalid input, try again.${col_default}"
+    fi
+  done
+
+  while [[ true ]]; do
+    echo -e "${col_blue}"
+    read -p "Value per utxo?: " utxo_val
+    echo -e "${col_default}"
+    if [ $utxo_val -ge 0 2>/dev/null ]; then  
+      utxo_val=$utxo_val
+    break
+    else
+      echo -e "${col_ltred}Invalid input, try again.${col_default}"
+    fi
+  done
+
 
 #split into a loop for more utxos
-#echo "creating raw table funding tx"
-#dice_fund_raw=$(komodo-cli -ac_name=$ac_name diceaddfunds $table_name $table_txid $funds)
-#fund_hex=$(echo $dice_fund_raw | jq -r '.hex')
+for ((c=1; c<=$utxo_count; c++)); do
+  echo "creating raw table funding tx"
+  dice_fund_raw=$(komodo-cli -ac_name=$ac_name diceaddfunds $table_name $table_txid $utxo_val)
+  fund_hex=$(echo $dice_fund_raw | jq -r '.hex')
+  echo "HEX: $fund_hex"
+  echo "broadcasting raw table funding tx"
+  send_raw_hex=$(komodo-cli -ac_name=$ac_name sendrawtransaction $fund_hex)
+  rawmempool=$(komodo-cli -ac_name=$ac_name getrawmempool)
+  confirmfunds=$(echo $rawmempool | jq '.[]' | grep $send_raw_hex) 2>/dev/null
 
+  while [ -z "$confirmfunds" ]; do
+    echo -e "${col_dkgrey}waiting for confirmation${col_default}"
+    sleep 10
 
-#echo "broadcating raw table funding tx"
-#dice_fund_raw=$(komodo-cli -ac_name=$ac_name sendrawtransaction $fund_hex)
-
-#rawmempool=$(komodo-cli -ac_name=$ac_name getrawmempool)
-#confirmfunds=$(echo $rawmempool | jq '.[]' | grep $table_txid)
-
-#while [ -z "$confirmfunds" ]; do
-#  echo -e "${col_dkgrey}waiting for confirmation${col_default}"
-#  sleep 10
-
-#  rawmempool=$(komodo-cli -ac_name=$ac_name getrawmempool)"."
-#confirmfunds=$(echo $rawmempool | jq '.[]' | grep $table_txid)
-#done
-#echo -e "${col_green}Funds confirmed in mempool with with txid: $confirmfunds${col_default}"
+    rawmempool=$(komodo-cli -ac_name=$ac_name getrawmempool)
+    confirmfunds=$(echo $rawmempool | jq '.[]' | grep $send_raw_hex) 2>/dev/null
+  done
+  echo -e "${col_green}Funds confirmed in mempool with with txid: $confirmfunds${col_default}"
+done
