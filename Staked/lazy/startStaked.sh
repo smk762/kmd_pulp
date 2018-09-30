@@ -1,6 +1,15 @@
 #!/bin/bash
 # Fetch assetchains.json
-
+col_red="\e[31m"
+col_green="\e[32m"
+col_yellow="\e[33m"
+col_blue="\e[34m"
+col_magenta="\e[35m"
+col_cyan="\e[36m"
+col_default="\e[39m"
+col_ltred="\e[91m"
+col_dkgrey="\e[90m"
+colors=($col_red $col_green $col_yellow $col_blue $col_magenta $col_cyan)
 
 prompt_confirm() {
   while true; do
@@ -14,56 +23,71 @@ prompt_confirm() {
 }
 checkSync() {
 	ac_name=$1
+	echo -e "${col_blue}Checking $ac_name sync${col_default}"
 	if [ $ac_name == "KMD" ]; then
 		acName_flag=""
 	else	
 		acName_flag="-ac_name=$ac_name"
 	fi
 	while [ -z $blocks ]; do
-		info=$(echo $(komodo-cli $acName_flag getinfo)) > /dev/null 2>&1
+		info=$(echo $(komodo-cli $acName_flag getinfo)) > /dev/null 2>&1 
 		blocks=$(echo ${info} | jq -r '.blocks')
 		longestchain=$(echo ${info} | jq -r '.longestchain')
-		#echo "$ac_name longestchain: $longestchain"
-		#echo "$ac_name blocks: $blocks"
 		if [ -z $longestchain ]; then
-			echo "[$ac_name not syncronised, checking again in 20 seconds"
-	    	sleep 20			
+			echo -e "${col_blue}[$ac_name not syncronised, checking again in 20 seconds${col_default}"
+	    	sleep 20
 		elif [ $longestchain != 0 ]; then
 			if [ $blocks == $longestchain ]; then
-				break 2;
+				echo -e "${col_yellow} [$ac_name syncronised on block ${blocks}]${col_default}"
+				break;
 			elif [ $blocks -eq 0 ]; then
-				echo "Incompatible Komodo version. Check Discord to confirm you're on the right repo."
+				echo -e "${col_red}Incompatible Komodo version. Check Discord to confirm you're on the right repo.${col_default}"
 				exit 0;
 			else
 				progress=$(echo blocks/longestchain|bc)
-				echo "[$ac_name not syncronised ($progress), checking again in 20 seconds"
+				echo -e "${col_blue}[$ac_name not syncronised ($progress), checking again in 20 seconds${col_default}"
 		    	sleep 20
 		    fi
 		fi
 	done
-	echo "[$ac_name syncronised on block ${blocks}]"
+	echo -e "${col_green} [$ac_name syncronised on block ${blocks}]${col_default}"
 }
+checkStopped() {
+	ac_name="$1"
+	acName_flag="$2"
+	echo -e "${col_blue}Checking $ac_name stopped${col_default}"
+	ac_info=$(komodo-cli $acName_flag getinfo) > /dev/null 2>&1
+	ac_infoName=$(echo $ac_info | jq -r '.name') > /dev/null 2>&1
+	while [[ $ac_name == $ac_infoName  ]]; do
+		echo -e "${col_blue}waiting for $ac_name deamon to stop${col_default}"
+		sleep 15
+		ac_info=$(komodo-cli $acName_flag getinfo) > /dev/null 2>&1
+		ac_infoName=$(echo $ac_info | jq -r '.name') > /dev/null 2>&1
+	done
+	echo -e "${col_green}$ac_name stopped${col_default}"
+}
+
 startDaemon() {
 	ac_name=$1
 	ac_params=$2
-	echo "Starting $ac_name ${ac_params[@]}"
-	komodod $ac_params &
+	#echo "Starting $ac_name ${ac_params[@]}"
 	if [ $ac_name == "KMD" ]; then
 		acName_flag=""
 	else	
 		acName_flag="-ac_name=$ac_name"
 	fi
-	sleep 10
+	komodod $ac_params  > /dev/null 2>&1 &
+	sleep 15
     checkSync $ac_name
 	addresses=()
-	addrss=$(komodo-cli $acName_flag listaddressgroupings | jq -r '.[][][0]')
+	addrss=$(komodo-cli $acName_flag listaddressgroupings | jq -r '.[][][0]') > /dev/null 2>&1
 	for addr in $addrss; do
 		addresses+=($addr)
 	done
 	if [ ! -d ~/wallets  ]; then
 		mkdir ~/wallets
 	fi
-	if [ ! -d ~/.komodo/${chain}  ]; then
+	if [ ! -d ~/.komodo/${ac_name}  ]; then
 		echo -e "\e[91m [ $chain ] CONF FILE DOES NOT EXIST!"
                 echo -e "Sync the chains first! \e[39m"
 		exit 1
@@ -72,11 +96,14 @@ startDaemon() {
 		touch  ~/wallets/.${ac_name}_wallet
 		chmod 600  ~/wallets/.${ac_name}_wallet
 	fi
-
 	num_addr=${#addresses[@]}
-	echo "address count: $num_addr"
 	if [ -z $num_addr ] || [ $num_addr==0 ]; then
-		address=$(komodo-cli $acName_flag getnewaddress)
+		address=$(komodo-cli $acName_flag getnewaddress) > /dev/null 2>&1
+		while [[ ${#address} != 34 ]]; do
+			echo ${#address}
+			sleep 30
+			address=$(komodo-cli $acName_flag getnewaddress) > /dev/null 2>&1
+		done
 		echo \{ \"chain\":\"${ac_name}\", >> ~/wallets/.${ac_name}_wallet
 		echo \"addr\":\"${address}\", >> ~/wallets/.${ac_name}_wallet
 		echo \"pk\":\"$(komodo-cli $acName_flag dumpprivkey $address)\", >> ~/wallets/.${ac_name}_wallet
@@ -89,26 +116,15 @@ startDaemon() {
 		echo $(cat ~/wallets/.${ac_name}_wallet | sed 's/} {/},\n{/g') > ~/wallets/.${ac_name}_wallet
 		echo \[$(cat ~/wallets/.${ac_name}_wallet)\] > ~/wallets/.${ac_name}_wallet
 		echo $(cat ~/wallets/.${ac_name}_wallet | sed '/},/{G;}') > ~/wallets/.${ac_name}_wallet
-		# cat ~/wallets/.${ac_name}_wallet
-		
+		# cat ~/wallets/.${ac_name}_wallet		
 	else
 		address=${addresses[0]}
-		echo "addr: $address"
 	fi
-	pubkey=$(komodo-cli $acName_flag validateaddress $address | jq -r '.pubkey')
-	komodo-cli $acName_flag stop
-	echo "waiting for $ac_name daemon to stop"
-	PIDs=$(pgrep -a komodod)
-	#echo "PIDS: $PIDs"
-	PID=$(echo $PIDs | grep "$ac_name")
-	#echo "PID: $PID"
-	while [ "$PID" != "" ]; do
-		echo "waiting for $ac_name deamon to stop"
-	#	echo "PID: $PID"
-		PID=$(echo $(pgrep -a komodod | grep "$ac_name"))
-		sleep 15
-	done
-	echo "Using pubkey $pubkey for $ac_name address $address"
+	pubkey=$(komodo-cli $acName_flag validateaddress $address | jq -r '.pubkey') > /dev/null 2>&1
+	komodo-cli $acName_flag stop  > /dev/null 2>&1
+	sleep 15
+	checkStopped $ac_name $acName_flag
+	echo -e "${col_blue} Using pubkey $pubkey for $ac_name address $address${col+default}"
 	komodod $ac_params -pubkey=$pubkey > /dev/null 2>&1 &
 }
 
@@ -128,10 +144,12 @@ for chain_params in $(echo "${ac_json}" | jq  -c -r '.[]'); do
     for node in $(echo $nodes | jq -r '.[]'); do
 		ac_params+=" -ac_node=$node"
     done
-	echo $ac_params
+	# echo $ac_params
+	echo -e "${col_green}Starting $ac_name Daemon${col_default}"
 	startDaemon $ac_name "$ac_params"
 done
+echo -e "${col_green}Starting KMD Daemon${col_default}"
 startDaemon "KMD"
-echo "Komodo and all Staked chains deamons are activated. Use 'tail -f ~/.komodo/<ac_name>/debug.log' to view stdout"
+echo -e "${col_green}Komodo and all Staked chains deamons are activated. Use ${col_yellow} tail -f ~/.komodo/<ac_name>/debug.log ${col_green} to view stdout${col_default}"
 # Start assets
 
