@@ -18,20 +18,9 @@ calc() {
   awk "BEGIN { print "$*" }"
 }
 
-if [[ -z "${specific_coin}" ]]; then
-  echo "----------------------------------------"
-  echo "Splitting UTXOs - ${date}"
-  echo "KMD target UTXO count: ${kmd_target_utxo_count}"
-  echo "KMD split threshold: ${kmd_split_threshold}"
-  echo "Other target UTXO count: ${other_target_utxo_count}"
-  echo "Other split threshold: ${other_split_threshold}"
-  echo "----------------------------------------"
-fi
-
-ac_json=$(curl https://raw.githubusercontent.com/StakedChain/StakedNotary/master/assetchains.json 2>/dev/null)
-num_chains=$(echo "${ac_json}" | jq  -r '. | length');
-for chain_params in $(echo "${ac_json}" | jq  -c -r '.[]'); do
-    ac_name=$(echo $chain_params | jq -r '.ac_name')
+splitutxos() {
+  ac_name=$1
+  specific_coin=$2
   if [[ -z "${specific_coin}" ]] || [[ "${specific_coin}" = "${ac_name}" ]]; then
     ac_flag="-ac_name=${ac_name}"
 
@@ -56,7 +45,7 @@ for chain_params in $(echo "${ac_json}" | jq  -c -r '.[]'); do
       utxo_required=$(calc ${target_utxo_count}-${utxo_count})
 
       if [[ ${utxo_required} -gt ${split_threshold} ]]; then
-        echo "[${ac_name}] Splitting ${utxo_required} extra UTXOs"       
+        echo "[${ac_name}] Splitting ${utxo_required} extra UTXOs"
         json=$(echo $(curl http://127.0.0.1:7776 --silent --data "{\"coin\":\"${ac_name}\",\"agent\":\"iguana\",\"method\":\"splitfunds\",\"satoshis\":10000,\"sendflag\":1,\"duplicates\":${utxo_required}}"))
         echo $json
         txid=$(echo ${json} | jq -r '.txid')
@@ -68,4 +57,25 @@ for chain_params in $(echo "${ac_json}" | jq  -c -r '.[]'); do
       fi
     fi
   fi
+}
+
+
+
+
+if [[ -z "${specific_coin}" ]]; then
+  echo "----------------------------------------"
+  echo "Splitting UTXOs - ${date}"
+  echo "KMD target UTXO count: ${kmd_target_utxo_count}"
+  echo "KMD split threshold: ${kmd_split_threshold}"
+  echo "Other target UTXO count: ${other_target_utxo_count}"
+  echo "Other split threshold: ${other_split_threshold}"
+  echo "----------------------------------------"
+fi
+
+ac_json=$(curl https://raw.githubusercontent.com/StakedChain/StakedNotary/master/assetchains.json 2>/dev/null)
+num_chains=$(echo "${ac_json}" | jq  -r '. | length');
+for chain_params in $(echo "${ac_json}" | jq  -c -r '.[]'); do
+    ac_name=$(echo $chain_params | jq -r '.ac_name')
+    splitutxos $ac_name
 done
+splitutxos "KMD"
