@@ -33,10 +33,10 @@ num_chains=$(echo "${ac_json}" | jq  -r '. | length');
 for chain_params in $(echo "${ac_json}" | jq  -c -r '.[]'); do
     ac_name=$(echo $chain_params | jq -r '.ac_name')
   if [[ -z "${specific_coin}" ]] || [[ "${specific_coin}" = "${ac_name}" ]]; then
-    cli=$(komodo-cli -ac_name=${ac_name})
+    ac_flag="-ac_name=${ac_name}"
 
     if [[ "${ac_name}" = "KMD" ]]; then
-      cli=$(komodo-cli)
+      ac_flag=""
       target_utxo_count=$kmd_target_utxo_count
       split_threshold=$kmd_split_threshold
     else
@@ -46,7 +46,7 @@ for chain_params in $(echo "${ac_json}" | jq  -c -r '.[]'); do
 
     satoshis=10000
     amount=$(calc $satoshis/100000000)
-    listunspent=$(${cli} listunspent)
+    listunspent=$(komodo-cli $ac_flag listunspent)
     if [[ "${listunspent}" = "" ]]; then
       echo "[$coin] Listuspent call failed aborting!"
     else
@@ -56,8 +56,9 @@ for chain_params in $(echo "${ac_json}" | jq  -c -r '.[]'); do
       utxo_required=$(calc ${target_utxo_count}-${utxo_count})
 
       if [[ ${utxo_required} -gt ${split_threshold} ]]; then
-        echo "[${ac_name}] Splitting ${utxo_required} extra UTXOs"
-        json=$(./splitfunds.sh ${ac_name} ${utxo_required})
+        echo "[${ac_name}] Splitting ${utxo_required} extra UTXOs"       
+        json=$(echo $(curl http://127.0.0.1:7776 --silent --data "{\"coin\":\"${ac_name}\",\"agent\":\"iguana\",\"method\":\"splitfunds\",\"satoshis\":10000,\"sendflag\":1,\"duplicates\":${utxo_required}}"))
+        echo $json
         txid=$(echo ${json} | jq -r '.txid')
         if [[ ${txid} != "null" ]]; then
           echo "[${ac_name}] Split TXID: ${txid}"
