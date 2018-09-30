@@ -4,6 +4,6 @@ cd /home/$USER/kmd_pulp/stomp
 ./startStaked.sh &
 komodod
 sleep 60
-cd ..
+cd /home/$USER/Knomp
 nohup npm start &
 #tail -f nohup.out
