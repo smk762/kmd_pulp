@@ -21,9 +21,9 @@ printbalance () {
 }
 
 source=STAKEDB1
-target=STAKEDW1
-address="RAwx45zENMPa2p4AGnGmbrFEw6wtGoUXi6"
-amount=1
+target=STAKEDPRIV
+address="RQVvzJ8gepCDVjhqCAc5Tia1kTmt8KDPL9"
+amount=10
 
 # Alias for running cli
 cli_target="komodo-cli -ac_name=$target"
