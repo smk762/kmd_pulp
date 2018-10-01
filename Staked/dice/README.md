@@ -1,3 +1,5 @@
+![dice tables](https://i.imgur.com/ogoO6B6.jpg)
+
 ### dice.sh 
 Play dice at table on a specific asset chain.
 
