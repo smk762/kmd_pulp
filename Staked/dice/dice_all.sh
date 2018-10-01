@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 col_red="\e[31m"
 col_green="\e[32m"
 col_yellow="\e[33m"
@@ -8,23 +9,14 @@ col_magenta="\e[35m"
 col_cyan="\e[36m"
 col_default="\e[39m"
 col_ltred="\e[91m"
+col_ltgreen="\e[92m"
+col_ltyellow="\e[93m"
+col_ltblue="\e[94m"
+col_ltmagenta="\e[95m"
 col_dkgrey="\e[90m"
-colors=($col_red $col_green $col_yellow $col_blue $col_magenta $col_cyan)
+colors=($col_ltgreen $col_ltblue $col_ltmagenta $col_cyan $col_ltyellow)
 dice_tables=()
-
-# Set chain dice is being played on
-if [[ -z $1 ]]; then
-	ac_name="STAKEDB1"
-else
-	ac_name=$1
-fi
-
-# Checking if asset chain selected is configured
-if [ ! -d ~/.komodo/${ac_name}  ]; then
-	echo -e "\e[91m [ $ac_name ] CONF FILE DOES NOT EXIST!"
-            echo -e "Sync the chains first! \e[39m"
-	exit 1
-fi
+OOO=("Cauthon" "photon" "autobot" "Doc")
 
 
 echo -e "${col_blue}********************************************************************"
@@ -32,74 +24,119 @@ echo -e "**** KOMODO's STAKED CHAINS - DICE CRYPTO-CONDITIONS BET EXAMPLE ****"
 echo -e "********************************************************************${col_default}"
 echo ""
 
+ac_json=$(curl https://raw.githubusercontent.com/StakedChain/StakedNotary/master/assetchains.json 2>/dev/null)
+num_chains=$(echo "${ac_json}" | jq  -r '. | length');
+for chain_params in $(echo "${ac_json}" | jq  -c -r '.[]'); do
+    ac_private=$(echo $chain_params | jq -r '.ac_private')
+    if [[ $ac_private != 1 ]]; then
+	    ac_name=$(echo $chain_params | jq -r '.ac_name')
+		# Checking if asset chain is configured
+		if [ ! -d ~/.komodo/${ac_name}  ]; then
+			echo -e "\e[91m [ $ac_name ] CONF FILE DOES NOT EXIST!"
+		            echo -e "Sync the chains first! \e[39m"
+			exit 1
+		fi
+		echo -e "${col_green}Step 1: Setting up DICE address for $ac_name${col_default}"
+		if [ ! -d ~/wallets  ]; then
+			mkdir ~/wallets
+		fi
+		if [ ! -f  ~/wallets/.${ac_name}_dicewallet_bets ]; then
+			echo -e "${col_cyan}Creating new dice wallet bet record. It will be saved in ~/wallets/.${ac_name}_dicewallet_bets${col_default}"
+			touch  ~/wallets/.${ac_name}_dicewallet_bets
+			chmod 600  ~/wallets/.${ac_name}_dicewallet_bets
+		fi
+		if [ ! -f  ~/wallets/.${ac_name}_dicewallet ]; then
+			touch  ~/wallets/.${ac_name}_dicewallet
+			chmod 600  ~/wallets/.${ac_name}_dicewallet
+			new_addr=$(komodo-cli getnewaddress)
+			new_pubkey=$(komodo-cli -ac_name=${ac_name} validateaddress $new_addr | jq -r '.pubkey')
+			dice_addrInfo=$(komodo-cli -ac_name=$ac_name diceaddress $new_pubkey)
+			myaddress=$(echo $dice_addrInfo | jq -r '.myaddress')
+			echo -e "${col_cyan}Creating new dice wallet address {$myaddress}. It will be saved in ~/wallets/.${ac_name}_dicewallet${col_default}"
+			echo $dice_addrInfo >  ~/wallets/.${ac_name}_dicewallet
+		else
+			dice_addrInfo=$(cat ~/wallets/.${ac_name}_dicewallet)
+			myaddress=$(echo $dice_addrInfo | jq -r '.myaddress')
+			echo -e "${col_cyan}DiceWallet for $ac_name already exists {$myaddress}! See ~/wallets/.${ac_name}_dicewallet for details${col_default}"
+		fi	
+		result=$(echo $dice_addrInfo | jq -r '.result')
+		DiceCCaddress=$(echo $dice_addrInfo | jq -r '.DiceCCaddress')
+		myCCaddress=$(echo $dice_addrInfo | jq -r '.myCCaddress')
+		CCaddress=$(echo $dice_addrInfo | jq -r '.CCaddress')
+		Dicemarker=$(echo $dice_addrInfo | jq -r '.Dicemarker')
 
-echo -e "${col_green}Step 1: Setting up DICE address for $ac_name${col_default}"
-if [ ! -d ~/wallets  ]; then
-	mkdir ~/wallets
-fi
-
-if [ ! -f  ~/wallets/.${ac_name}_dicewallet_bets ]; then
-	echo -e "${col_cyan}Creating new dice wallet bet record. It will be saved in ~/wallets/.${ac_name}_dicewallet_bets${col_default}"
-	touch  ~/wallets/.${ac_name}_dicewallet_bets
-	chmod 600  ~/wallets/.${ac_name}_dicewallet_bets
-fi
-if [ ! -f  ~/wallets/.${ac_name}_dicewallet ]; then
-	touch  ~/wallets/.${ac_name}_dicewallet
-	chmod 600  ~/wallets/.${ac_name}_dicewallet
-	new_addr=$(komodo-cli getnewaddress)
-	new_pubkey=$(komodo-cli -ac_name=${ac_name} validateaddress $new_addr | jq -r '.pubkey')
-	dice_addrInfo=$(komodo-cli -ac_name=$ac_name diceaddress $new_pubkey)
-	myaddress=$(echo $dice_addrInfo | jq -r '.myaddress')
-	echo -e "${col_cyan}Creating new dice wallet address {$myaddress}. It will be saved in ~/wallets/.${ac_name}_dicewallet${col_default}"
-	echo $dice_addrInfo >  ~/wallets/.${ac_name}_dicewallet
-else
-	dice_addrInfo=$(cat ~/wallets/.${ac_name}_dicewallet)
-	myaddress=$(echo $dice_addrInfo | jq -r '.myaddress')
-	echo -e "${col_cyan}DiceWallet for $ac_name already exists {$myaddress}! See ~/wallets/.${ac_name}_dicewallet for details${col_default}"
-fi	
-result=$(echo $dice_addrInfo | jq -r '.result')
-DiceCCaddress=$(echo $dice_addrInfo | jq -r '.DiceCCaddress')
-myCCaddress=$(echo $dice_addrInfo | jq -r '.myCCaddress')
-CCaddress=$(echo $dice_addrInfo | jq -r '.CCaddress')
-Dicemarker=$(echo $dice_addrInfo | jq -r '.Dicemarker')
-
-if [[ $(cat ~/wallets/.STAKEDB1_wallet | grep $myaddress) == "" ]]; then
-	echo -e "${col_cyan}Storing your DiceWallet address $myaddress for $ac_name in  ~/wallets/.${ac_name}_wallet${col_default}"
+		if [[ $(cat ~/wallets/.STAKEDB1_wallet | grep $myaddress) == "" ]]; then
+			echo -e "${col_cyan}Storing your DiceWallet address $myaddress for $ac_name in  ~/wallets/.${ac_name}_wallet${col_default}"
 
 
-	privkey=$(komodo-cli -ac_name=${ac_name} dumpprivkey $myaddress)
-	pubkey=$(komodo-cli -ac_name=${ac_name} validateaddress $myaddress | jq -r '.pubkey')
+			privkey=$(komodo-cli -ac_name=${ac_name} dumpprivkey $myaddress)
+			pubkey=$(komodo-cli -ac_name=${ac_name} validateaddress $myaddress | jq -r '.pubkey')
 
 
-	echo { \"chain\":\"${ac_name}\", >> ~/wallets/.${ac_name}_wallet
-	echo \"addr\":\"${myaddress}\", >> ~/wallets/.${ac_name}_wallet
-	echo \"pk\":\"${privkey}\", >> ~/wallets/.${ac_name}_wallet
-	echo \"pub\":\"${pubkey}\" } >> ~/wallets/.${ac_name}_wallet
-	echo $(cat ~/wallets/.${ac_name}_wallet | sed 's/[][]//g') > ~/wallets/.${ac_name}_wallet 
-	echo $(cat ~/wallets/.${ac_name}_wallet | tr -d '\n') > ~/wallets/.${ac_name}_wallet
-	echo $(cat ~/wallets/.${ac_name}_wallet | sed 's/} {/},\n{/g') > ~/wallets/.${ac_name}_wallet
-	echo \[$(cat ~/wallets/.${ac_name}_wallet)\] > ~/wallets/.${ac_name}_wallet
-	echo $(cat ~/wallets/.${ac_name}_wallet | sed '/},/{G;}') > ~/wallets/.${ac_name}_wallet
-fi
+			echo { \"chain\":\"${ac_name}\", >> ~/wallets/.${ac_name}_wallet
+			echo \"addr\":\"${myaddress}\", >> ~/wallets/.${ac_name}_wallet
+			echo \"pk\":\"${privkey}\", >> ~/wallets/.${ac_name}_wallet
+			echo \"pub\":\"${pubkey}\" } >> ~/wallets/.${ac_name}_wallet
+			echo $(cat ~/wallets/.${ac_name}_wallet | sed 's/[][]//g') > ~/wallets/.${ac_name}_wallet 
+			echo $(cat ~/wallets/.${ac_name}_wallet | tr -d '\n') > ~/wallets/.${ac_name}_wallet
+			echo $(cat ~/wallets/.${ac_name}_wallet | sed 's/} {/},\n{/g') > ~/wallets/.${ac_name}_wallet
+			echo \[$(cat ~/wallets/.${ac_name}_wallet)\] > ~/wallets/.${ac_name}_wallet
+			echo $(cat ~/wallets/.${ac_name}_wallet | sed '/},/{G;}') > ~/wallets/.${ac_name}_wallet
+		fi
 
-# use pub key from dice address in your wallet
-pubkey=$(komodo-cli -ac_name=${ac_name} validateaddress $myaddress | jq -r '.pubkey')
-balance=$(komodo-cli -ac_name=$ac_name getbalance)
-echo -e "===== ${col_magenta} You have $balance $ac_name to bet using pubkey $pubkey ====="
+		# use pub key from dice address in your wallet
+		pubkey=$(komodo-cli -ac_name=${ac_name} validateaddress $myaddress | jq -r '.pubkey')
+		balance=$(komodo-cli -ac_name=$ac_name getbalance)
+		echo -e "===== ${col_magenta} You have $balance $ac_name to bet using pubkey $pubkey ====="
+	fi
+done
 
 rollDice() {
-	ac_name=$1
-	echo ""
-	echo -e "${col_green}Step 2: Ask Ashy Larry: Are there are any games on? ${col_default}"
-	echo ""
-	diceList=$(komodo-cli -ac_name=$ac_name dicelist)
-	diceList="$(echo $diceList | jq -r '.[]')"
+	header=" %-3s %-12s %-14s  %7s  %7s  %8s  %7s  %5s  %-64s\n"
+	format=" %-3s %-12s %-14s  %7d  %7d  %8d  %7d  %5.0f  %-64s\n"
 	i=1
-	for table in $diceList; do
-		echo -e "${col_cyan}$i - $table${col_default}"
-		((i=$i+1))
-		dice_tables+=("$table")
+	ac_json=$(curl https://raw.githubusercontent.com/StakedChain/StakedNotary/master/assetchains.json 2>/dev/null)
+	num_chains=$(echo "${ac_json}" | jq  -r '. | length');
+	echo -e "${col_yellow}----------------------------------------------------------------------------------------------------------------------------------------------${col_default}"
+	echo -e "${col_yellow}----------------------------------------------------- ${col_cyan} S E L E C T   A   T A B L E ${col_yellow} ----------------------------------------------------------"
+	echo -e "${col_yellow}----------------------------------------------------------------------------------------------------------------------------------------------${col_default}"
+	printf "$header" "#" "CHAIN" "TABLE NAME" "MIN BET" "MAX BET" "MAX ODDS" "TIMEOUT" "FUNDS" "TX"
+	for chain_params in $(echo "${ac_json}" | jq  -c -r '.[]'); do
+		j=$(( $i % ${#colors[@]} ))
+		echo -e ${colors[$j]}
+	    ac_private=$(echo $chain_params | jq -r '.ac_private')
+	    if [[ $ac_private != 1 ]]; then
+		    ac_name=$(echo $chain_params | jq -r '.ac_name')
+			diceList=$(komodo-cli -ac_name=$ac_name dicelist)
+			diceList="$(echo $diceList | jq -r '.[]')"
+			for table in $diceList; do
+				dice_tables+=("$table")
+				table_chains+=("$ac_name")
+				tableInfo=$(komodo-cli -ac_name=$ac_name diceinfo $table)
+				result=$(echo $tableInfo | jq -r '.result')
+				name=$(echo $tableInfo | jq -r '.name')
+				sbits=$(echo $tableInfo | jq -r '.sbits')
+				minbet=$(echo $tableInfo | jq -r '.minbet')
+				minbet=${minbet%.*}
+				maxbet=$(echo $tableInfo | jq -r '.maxbet')
+				maxbet=${maxbet%.*}
+				maxodds=$(echo $tableInfo | jq -r '.maxodds')
+				timeout=$(echo $tableInfo | jq -r '.timeoutblocks')
+				funding=$(echo $tableInfo | jq -r '.funding')
+				if echo ${OOO[@]} | grep -q -w "$name"; then 
+					name="Out of Order!"
+					echo -e "${col_red}"
+					printf "$format" "$i" "$ac_name" "$name" "$minbet" "$maxbet" "$maxodds" "$timeout" "$funding" "$table"	
+					echo -e ${colors[$j]}			    
+				else 
+					printf "$format" "$i" "$ac_name" "$name" "$minbet" "$maxbet" "$maxodds" "$timeout" "$funding" "$table"
+				fi
+				((i=$i+1))
+			done
+		fi	
 	done
+	echo -e "${col_yellow}----------------------------------------------------------------------------------------------------------------------------------------------${col_default}"
+
 	numTables=${#dice_tables[@]}
 	tableIndex=$(echo $numTables+1|bc)
 	while [[ true ]]; do
@@ -117,12 +154,9 @@ rollDice() {
 		fi
 	done
 	tableIndex=$(echo $tableIndex-1|bc)
+	ac_name=${table_chains[${tableIndex}]}
 	funding_txid="${dice_tables[${tableIndex}]}"
-	echo -e "${col_dkgrey}funding_txid: $funding_txid${col_default}"
-	echo ""
-	echo -e "${col_green}Step 3: Ask Ashy Larry about the table${col_default}"
 	tableInfo=$(komodo-cli -ac_name=$ac_name diceinfo $funding_txid)
-	echo -e "${col_dkgrey}Funding TX: $funding_txid${col_default}"
 	result=$(echo $tableInfo | jq -r '.result')
 	name=$(echo $tableInfo | jq -r '.name')
 	sbits=$(echo $tableInfo | jq -r '.sbits')
@@ -131,16 +165,12 @@ rollDice() {
 	maxbet=$(echo $tableInfo | jq -r '.maxbet')
 	maxbet=${maxbet%.*}
 	maxodds=$(echo $tableInfo | jq -r '.maxodds')
-	timeoutblocks=$(echo $tableInfo | jq -r '.timeoutblocks')
+	timeout=$(echo $tableInfo | jq -r '.timeoutblocks')
 	funding=$(echo $tableInfo | jq -r '.funding')
+	table_num=$(echo $tableIndex+1|bc)
+	printf "$format" "$table_num" "$ac_name" "$name" "$minbet" "$maxbet" "$maxodds" "$timeout" "$funding" "$funding_txid"
 
-	echo -e "${col_yellow} ---- TABLE RULES ----"
-	echo "Minimum Bet: $minbet"
-	echo "Maximum Bet: $maxbet"
-	echo "Maximum Odds: $maxodds"
-	echo "Timeout: $timeoutblocks blocks"
-	echo -e "Table Funds: $funding${col_default}"
-
+	echo -e "${col_dkgrey}funding_txid: $funding_txid${col_default}"
 	echo ""
 	echo -e "${col_green}Step 4: Tell Ashy Larry what bet you want to place${col_default}"
 	amount=0
@@ -186,9 +216,28 @@ rollDice() {
 	while [ "$placed_bet" == "error" ]; do
 		bet=$(komodo-cli -ac_name=$ac_name dicebet $name $funding_txid $amount $odds)
 		bet_hex=$(echo $bet | jq -r '.hex')
+		bet_err=$(echo $bet | jq -r '.error')
 		placed_bet=$(echo $bet | jq -r '.result')
 		if [ $placed_bet == "error" ]; then
 			echo " waiting for next roll"
+			if [[ $bet_err == "cant find dice entropy inputs" ]]; then
+				echo "Table out of order."							
+				unset addict
+				while [[ $addict != "y" ]] && [[ $addict != "n" ]]; do
+					echo -e "${col_green}"
+					read -p "===== Roll again? [y/n] =====" addict
+					echo -e "${col_default}"
+					if [[ $addict == "y" ]]; then
+						rollDice $ac_name
+						break
+					elif [[ $addict == "n" ]]; then
+						echo -e "${col_yellow}--- Thanks for playing! ---${col_default}"
+						exit 0
+					else
+						echo "Invalid response, try again."
+					fi
+				done
+			fi
 			echo -e "${col_dkgrey}Bet: ${bet}${col_default}"
 		fi
 		sleep 15
@@ -231,7 +280,7 @@ rollDice() {
 		betFinish_result=$(echo "$bet_finish" | jq -r '.result')
 		betFinish_error=$(echo $bet_finish | jq -r '.error')
 		if [[ $betFinish_result != "success" ]]; then
-			echo -e "${col_blue}Waiting for dice to stop rolling ($roll_time sec - $confblocks / $timeoutblocks timeout blocks${col_default}"
+			echo -e "${col_blue}Waiting for dice to stop rolling ($roll_time sec - $confblocks / $timeoutblocks timeout blocks)${col_default}"
 			sleep 30		
 		fi
 	done
