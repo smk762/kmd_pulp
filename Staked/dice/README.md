@@ -1,4 +1,4 @@
-### dice.sh [chain name]
+### dice.sh 
 Play dice at table on a specific asset chain.
 
 ### dice_all.sh
