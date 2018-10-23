@@ -52,12 +52,12 @@ for row in $(echo "${ac_json}" | jq -c -r '.[]'); do
         pointless=0
   else
   	# todo: better path
-	if [ ! -f ~/kmd_pulp/stomp/wallets/.${chain}_wallet ]; then
+	if [ ! -f ~/wallets/.${chain}_poolwallet ]; then
 		echo -e "\e[91m ** Addresses not yet set, run ./genaddr.sh first ** \e[39m"
 	elif [ $perc != null ]; then
 		echo -e "\e[91m ** [$chain] AC_perc =  coin detected - incompatible with pool, omitting. ** \e[39m"
 	else
-	    walletaddress=$(cat ~/kmd_pulp/stomp/wallets/.${chain}_wallet | jq  -r '.addr')
+	    walletaddress=$(cat ~/wallets/.${chain}_poolwallet | jq  -r '.addr')
 	    echo Configuring $chain with address: ${walletaddress}
 	    string=$(printf '%08x\n' $(komodo-cli -ac_name=$chain getinfo | jq '.magic'))
 	    magic=${string: -8}

@@ -10,6 +10,7 @@ prompt_confirm() {
     esac 
   done  
 }
+curl https://bootstrap.0x03.services/komodo/KMD-bootstrap.tar.gz -o ~/.komodo/KMD-bootstrap.tar.gz
 
 cd /home/$USER/komodo
 git remote -v

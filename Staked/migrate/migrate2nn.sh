@@ -2,19 +2,13 @@
 
 # This script makes the neccesary transactions to migrate
 # coin between 2 assetchains on the same -ac_cc id
-
-source=$1
-target=$2
-address=$3
-amount=$4
-
 waitforconfirm () {
   confirmations=0
   while [[ ${confirmations} -lt 1 ]]; do
     sleep 15
     confirmations=$($2 gettransaction $1 | jq -r .confirmations)
     # Keep re-broadcasting
-    $2 getrawtransaction $1 > /home/$USER/logs/tx/$1
+    $2 getrawtransaction $1 > logs/tx/$1
     $2 sendrawtransaction $($2 getrawtransaction $1) > /dev/null 2>&1
   done
 }
@@ -25,6 +19,11 @@ printbalance () {
   echo "[$source] : $src_balance"
   echo "[$target] : $tgt_balance"
 }
+
+source=STAKEDW1
+target=STAKEDCCP
+address="RQVvzJ8gepCDVjhqCAc5Tia1kTmt8KDPL9"
+amount=10
 
 # Alias for running cli
 cli_target="komodo-cli -ac_name=$target"

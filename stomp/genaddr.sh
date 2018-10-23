@@ -18,15 +18,15 @@ for row in $(echo "${ac_json}" | jq -c -r '.[]'); do
                 echo -e "Run ~/Knomp/install/startStaked.sh first \e[39m"
 		exit 1
 	fi
-	if [ ! -f  ~/kmd_pulp/stomp/wallets/.${chain}_wallet ]; then
-		touch  ~/kmd_pulp/stomp/wallets/.${chain}_wallet
-		sudo chmod 600  ~/kmd_pulp/stomp/wallets/.${chain}_wallet
+	if [ ! -f  ~/kmd_pulp/stomp/wallets/.${chain}_poolwallet ]; then
+		touch  ~/kmd_pulp/stomp/wallets/.${chain}_poolwallet
+		sudo chmod 600  ~/kmd_pulp/stomp/wallets/.${chain}_poolwallet
 		address=$(komodo-cli -ac_name=$chain getnewaddress)
 		echo "Created $address for [ $chain ]"
-		echo { \"chain\":\"${chain}\", >> ~/kmd_pulp/stomp/wallets/.${chain}_wallet
-		echo \"addr\":\"${address}\", >> ~/kmd_pulp/stomp/wallets/.${chain}_wallet
-		echo \"pk\":\"$(komodo-cli -ac_name=${chain} dumpprivkey $address)\", >> ~/kmd_pulp/stomp/wallets/.${chain}_wallet
-		echo \"pub\":\"$(komodo-cli -ac_name=${chain} validateaddress $address | jq -r '.pubkey')\" } >> ~/kmd_pulp/stomp/wallets/.${chain}_wallet
+		echo { \"chain\":\"${chain}\", >> ~/kmd_pulp/stomp/wallets/.${chain}_poolwallet
+		echo \"addr\":\"${address}\", >> ~/kmd_pulp/stomp/wallets/.${chain}_poolwallet
+		echo \"pk\":\"$(komodo-cli -ac_name=${chain} dumpprivkey $address)\", >> ~/kmd_pulp/stomp/wallets/.${chain}_poolwallet
+		echo \"pub\":\"$(komodo-cli -ac_name=${chain} validateaddress $address | jq -r '.pubkey')\" } >> ~/kmd_pulp/stomp/wallets/.${chain}_poolwallet
 	else
 		echo "ADDRESS FOR $chain ALREADY CREATED";
 	fi

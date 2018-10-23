@@ -125,9 +125,9 @@ rollDice() {
 				funding=$(echo $tableInfo | jq -r '.funding')
 				if echo ${OOO[@]} | grep -q -w "$name"; then 
 					name="Out of Order!"
-					echo -e "${col_red}"
-					printf "$format" "$i" "$ac_name" "$name" "$minbet" "$maxbet" "$maxodds" "$timeout" "$funding" "$table"	
-					echo -e ${colors[$j]}			    
+					#echo -e "${col_red}"
+					#printf "$format" "$i" "$ac_name" "$name" "$minbet" "$maxbet" "$maxodds" "$timeout" "$funding" "$table"	
+					#echo -e ${colors[$j]}			    
 				else 
 					printf "$format" "$i" "$ac_name" "$name" "$minbet" "$maxbet" "$maxodds" "$timeout" "$funding" "$table"
 				fi
