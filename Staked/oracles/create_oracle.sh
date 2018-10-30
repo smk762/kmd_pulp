@@ -25,7 +25,7 @@ done
 
 echo -e -n "$col_blue"
 PS3="Chain to create oracle on: "
-select ac in ${ac_list[@]}
+select ac in "${ac_list[@]}"
 do
     echo -e -n "$col_yellow"
     ac_name=$ac
@@ -33,7 +33,7 @@ do
     ac_balance=$($cli getbalance)
     break
 done
-echo "$ac_name selected ($src_balance)"
+echo "$ac_name selected ($ac_balance)"
 
 name=""
 while [[ $name == "" ]]; do
@@ -54,7 +54,7 @@ echo -e -n "$col_blue"
 PS3="Oracle format: "
 select format_desc in "${formats[@]}"
 do
-	format=$(echo ${format_desc:0:1})
+	format=${format_desc:0:1}
 	if [[ $format != "" ]]; then
 		break
 	fi
