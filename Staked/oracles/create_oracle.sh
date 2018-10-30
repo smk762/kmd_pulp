@@ -59,23 +59,24 @@ do
 		break
 	fi
 done
-echo "format_desc: $format_desc"
-echo "format: $format"
+#echo "format_desc: $format_desc"
+#echo "format: $format"
 
 oracle=$($cli oraclescreate "$name" "$desc" "$format")
-echo $oracle
+#echo $oracle
 oracleHex=$(echo $oracle | jq -r '.hex')
-echo $oracleHex
+#echo $oracleHex
 oracleResult=$(echo $oracle | jq -r '.result')
-echo $oracleResult
+#echo $oracleResult
 while [[ $oracleResult != "success" ]]; do
 	sleep 7
 	oracle=$(echo $cli oraclescreate "${name}" "${desc}" "${format}")
-	echo $oracle
+	#echo $oracle
 	oracleHex=$(echo $oracle | jq -r '.hex')
-	echo $oracleHex
+	#echo $oracleHex
 	oracleResult=$(echo $oracle | jq -r '.result')
-	echo $oracleResult
+	#echo $oracleResult
+	echo "creating oracle..."
 done
 oracleTX=$($cli sendrawtransaction $oracleHex)
 memPool=$($cli getrawmempool)
@@ -84,7 +85,7 @@ while [[ $match == "" ]]; do
 	sleep 7
 	memPool=$($cli getrawmempool)
 	match=$(echo $memPool | grep $oracleTX)
-	echo "checking mempool for confirmation"
+	echo "Confirming in mempool..."
 done 
 echo "Oracle creation tx confirmed"
 oraclesList=$($cli oracleslist)
@@ -92,37 +93,31 @@ match=$(echo $oraclesList | grep $oracleTX)
 while [[ $match == "" ]]; do
 	sleep 7
 	oraclesList=$($cli oracleslist)
-	echo "oraclesList: $oraclesList"
+	#echo "oraclesList: $oraclesList"
 	match=$(echo $oraclesList | grep $oracleTX)
-	echo "oracleTX: $oracleTX"
+	#echo "oracleTX: $oracleTX"
+	echo "Listing on $ac_name in mempool..."
 done 
 echo "Oracle listed on $ac_name"
 oraclesInfo=$($cli oraclesinfo $oracleTX)
-echo "==========="
-echo "ORACLE INFO"
-echo "==========="
-echo $oraclesInfo | jq '.'
-publisher=$(echo $oraclesInfo | jq  '.registered' | jq -r '.[].publisher')
-echo "==========="
-echo "publisher: $publisher"
 
 datafee=10000000 # in satoshis
 echo "Registering Oracle subscription plan"
 oracleReg=$($cli oraclesregister $oracleTX $datafee)
-echo "oracleReg: $oracleReg"
+#echo "oracleReg: $oracleReg"
 regHex=$(echo $oracleReg | jq -r '.hex')
-echo "regHex: $regHex"
+#echo "regHex: $regHex"
 regResult=$(echo $oracleReg | jq -r '.result')
-echo "regResult: $regResult"
+#echo "regResult: $regResult"
 while [[ $regResult != "success" ]]; do
 	sleep 7
 	oracleReg=$($cli oraclesregister $oracleTX $datafee)
-	echo "oracleReg: $oracleReg"
+	#echo "oracleReg: $oracleReg"
 	regHex=$(echo $oracleReg | jq -r '.hex')
-	echo "regHex: $regHex"
+	#echo "regHex: $regHex"
 	regResult=$(echo $oracleReg | jq -r '.result')
-	echo "regResult: $regResult"
-	echo "awaiting registration"
+	#echo "regResult: $regResult"
+	echo "awaiting registration..."
 done
 
 oracleRegTX=$($cli sendrawtransaction $regHex)
@@ -132,7 +127,7 @@ while [[ $match == "" ]]; do
 	sleep 7
 	memPool=$($cli getrawmempool)
 	match=$(echo $memPool | grep $oracleRegTX)
-	echo "oracleRegTX: $oracleRegTX"
+	#echo "oracleRegTX: $oracleRegTX"
 	echo "checking mempool for confirmation"
 done 
 echo "Oracle registration tx in mempool"
@@ -143,40 +138,31 @@ while [[ $publisher == "" ]]; do
 	sleep 7
 	oraclesInfo=$($cli oraclesinfo $oracleTX)
 	publisher=$(echo $oraclesInfo | jq  '.registered' | jq -r '.[].publisher')
-	echo "verifying registration completed"
-	echo "==========="
-	echo "ORACLE INFO"
-	echo "==========="
-	echo $oraclesInfo | jq '.'
-	echo "==========="
+	echo "Getting publisher ID..."
 done
-echo "==========="
-echo "ORACLE INFO"
-echo "==========="
-echo $oraclesInfo | jq '.'
-echo "==========="
 
 echo "Subscribing to oracle"
 datafee=1 # not in satoshis?
 oracleSub=$($cli oraclessubscribe $oracleTX $publisher $datafee)
-echo "oracleSub: $oracleSub"
+#echo "oracleSub: $oracleSub"
 subHex=$(echo $oracleSub | jq -r '.hex')
-echo "subHex: $subHex"
+#echo "subHex: $subHex"
 subResult=$(echo $oracleSub | jq -r '.result')
-echo "subResult: $subResult"
+#echo "subResult: $subResult"
 while [[ $subResult != "success" ]]; do
 	sleep 7
-	echo "$oracleTX / $publisher / $datafee"
+	#echo "$oracleTX / $publisher / $datafee"
 	oracleSub=$($cli oraclessubscribe $oracleRegTX $publisher $datafee)
 	#oracleSub=$($cli oraclessubscribe $oracleTX $publisher $datafee)
-	echo "oracleSub: $oracleSub"
+	#echo "oracleSub: $oracleSub"
 	subHex=$(echo $oracleSub | jq -r '.hex')
-	echo "subHex: $subHex"
+	#echo "subHex: $subHex"
 	subResult=$(echo $oracleSub | jq -r '.result')
-	echo "subResult: $subResult"	
+	#cho "subResult: $subResult"	
+	echo "verifying registration completed..."
 done
 
-echo "Awating subscription confirmation"
+echo "Confirming subscription"
 
 oracleSubTX=$($cli sendrawtransaction $subHex)
 memPool=$($cli getrawmempool)
@@ -185,7 +171,7 @@ while [[ $match == "" ]]; do
 	sleep 7
 	memPool=$($cli getrawmempool)
 	match=$(echo $memPool | grep $oracleSubTX)
-	echo "checking mempool for confirmation"
+	echo "checking mempool for confirmation..."
 done 
 
 
