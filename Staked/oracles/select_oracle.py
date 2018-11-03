@@ -21,6 +21,7 @@ def selectRange(low,high, msg):
 i = 0
 ID = 1
 oracletxIDs = []
+oracleChains = []
 HOME = os.environ['HOME']
 with open(HOME + '/StakedNotary/assetchains.json') as file:
 	assetchains = json.load(file)
@@ -38,6 +39,9 @@ for chain in assetchains:
 		#		if description[0:3] == 'GPS':
 		print(colorTable.colors[i]+ str(ID).rjust(3) + ' | ' + chain['ac_name'].ljust(12) + ' | ' + name.ljust(20) + ' | ' + description.ljust(50) + ' | ' + oracle_txid)
 		oracletxIDs.append(oracle_txid)
+		oracleChains.append(chain['ac_name'])
 		ID+=1
 chosen_one = selectRange(0,len(oracletxIDs),"Select an oracle: ")
-print("you selected oracle " + str(chosen_one) )
+chosen_info = getconf.oraclesinfo_rpc(oracleChains[chosen_one-1], oracletxIDs[chosen_one-1])
+print("you selected oracle " + str(chosen_one) + " ["+chosen_info['name']+" ]" )
+print(chosen_info)

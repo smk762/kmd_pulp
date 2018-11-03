@@ -17,7 +17,7 @@ if [[ ! -d $HOME/.komodo/oracle_logs ]]; then
   mkdir $HOME/.komodo/oracle_logs
 fi
 
-ac_json=$(cat "$HOME/.komodo/assetchains.json")
+ac_json=$(cat "$HOME/StakedNotary/assetchains.json")
 for chain_params in $(echo "${ac_json}" | jq  -c -r '.[]'); do
   ac_name=$(echo $chain_params | jq -r '.ac_name')
   ac_list+=($ac_name)
