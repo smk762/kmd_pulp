@@ -11,6 +11,8 @@ prompt_confirm() {
   done  
 }
 curl https://bootstrap.0x03.services/komodo/KMD-bootstrap.tar.gz -o ~/.komodo/KMD-bootstrap.tar.gz
+cd /home/$USER/.komodo
+tar -xvzf KMD-bootstrap.tar.gz
 
 cd /home/$USER/komodo
 git remote -v
