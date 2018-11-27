@@ -101,7 +101,7 @@ done
 echo "Oracle listed on $ac_name"
 oraclesInfo=$($cli oraclesinfo $oracleTX)
 
-datafee=10000000 # in satoshis
+datafee=1000000 # in satoshis
 echo "Registering Oracle subscription plan"
 oracleReg=$($cli oraclesregister $oracleTX $datafee)
 #echo "oracleReg: $oracleReg"
@@ -142,7 +142,7 @@ while [[ $publisher == "" ]]; do
 done
 
 echo "Subscribing to oracle"
-datafee=1 # not in satoshis?
+datafee=100 # not in satoshis?
 oracleSub=$($cli oraclessubscribe $oracleTX $publisher $datafee)
 #echo "oracleSub: $oracleSub"
 subHex=$(echo $oracleSub | jq -r '.hex')

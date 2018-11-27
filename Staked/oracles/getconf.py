@@ -126,6 +126,10 @@ def kvupdate_rpc(chain, key, value, days, password):
     return(kvupdate_result)
 
 def oraclesdata_rpc(chain, oracletxid, hexstr):
+    print("chain: "+chain)
+    print("oracletxid: "+oracletxid)
+    print("hexstr: "+hexstr)
+    print("creds: " +def_credentials(chain))
     oraclesdata_payload = {
         "jsonrpc": "1.0",
         "id": "python",
@@ -133,6 +137,7 @@ def oraclesdata_rpc(chain, oracletxid, hexstr):
         "params": [
             oracletxid,
             hexstr]}
+    print("orcdat: "+str(oraclesdata_payload))
     oraclesdata_result = post_rpc(def_credentials(chain), oraclesdata_payload)
     return(oraclesdata_result['result'])
 
