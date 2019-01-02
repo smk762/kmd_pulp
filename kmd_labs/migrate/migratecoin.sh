@@ -57,34 +57,44 @@ for chain_params in $(echo "${ac_json}" | jq  -c -r '.[]'); do
   ac_list+=("$ac_name (ccid: ${ccid})")
   cli_source="komodo-cli -ac_name=$ac_name"
   src_balance=$($cli_source getbalance)
-  echo -e "${col_yellow}$ac_name (balance: $src_balance)"
+  echo -e "${col_green}$ac_name (balance: $src_balance)"
 done
 
 echo -e -n "$col_blue"
 PS3="Select source asset chain: "
-select ac in "${ac_list[@]}"
-do
-    echo -e -n "$col_yellow"
-    selected=($ac)
-    source=${selected[0]}
-    ccid_src=$(echo "${selected[2]}" | sed 's=(==' | sed 's=)==')
-    cli_source="komodo-cli -ac_name=$source"
-    src_balance=$($cli_source getbalance)
-    break
+while [[ ${#source} < 3 ]]; do
+  select ac in "${ac_list[@]}"
+  do
+      echo -e -n "$col_yellow"
+      selected=($ac)
+      source=${selected[0]}
+      ccid_src=$(echo "${selected[2]}" | sed 's=(==' | sed 's=)==')
+      cli_source="komodo-cli -ac_name=$source"
+      src_balance=$($cli_source getbalance)
+      break
+  done
+  echo -e -n "$col_blue"
+  PS3="Select source asset chain: "
+  echo -e -n "$col_yellow"
 done
 echo "$source selected (balance: $src_balance)"
 
 echo -e -n "$col_blue"
 PS3="Select target asset chain: "
-select ac in "${ac_list[@]}"
-do
+while [[ ${#target} < 3 ]]; do
+  select ac in "${ac_list[@]}"
+  do
   echo -e -n "$col_yellow"
-    selected=($ac)
-    target=${selected[0]}
-    ccid_tgt=$(echo "${selected[2]}" | sed 's=(==' | sed 's=)==')
-    cli_target="komodo-cli -ac_name=$target"
-    tgt_balance=$($cli_target getbalance)
-    break
+      selected=($ac)
+      target=${selected[0]}
+      ccid_tgt=$(echo "${selected[2]}" | sed 's=(==' | sed 's=)==')
+      cli_target="komodo-cli -ac_name=$target"
+      tgt_balance=$($cli_target getbalance)
+      break
+  done
+  echo -e -n "$col_blue"
+  PS3="Select source asset chain: "
+  echo -e -n "$col_yellow"
 done
 echo "$target selected (balance: $tgt_balance)"
 
@@ -108,16 +118,18 @@ PS3="Select target address: "
 echo -e -n "$col_yellow"
 addresses=($(komodo-cli -ac_name=$target listaddressgroupings | jq -r '.[][][0]'))
 if [[ ${#addresses[@]} -gt 0 ]]; then
-  select address in ${addresses[@]}
-  do
-    trg_addr=$address
-    break
+  while [[ ${#trg_addr} -ne 34 ]]; do
+    select address in ${addresses[@]}
+    do
+      trg_addr=$address
+      break
+    done
   done
-else
-  while [[ ${#trg_addr} -ne 34 ]]; do 
-    echo -e -n "${col_blue}Enter target address: ${col_default}"
-    read trg_addr
-  done
+  else
+    while [[ ${#trg_addr} -ne 34 ]]; do 
+      echo -e -n "${col_blue}Enter target address: ${col_default}"
+      read trg_addr
+    done
 fi
 init_txt="Sending $amount from $source to $trg_addr on $target at $(date)"
 echo $init_txt
@@ -127,20 +139,27 @@ printbalance
 
 # Raw tx that we will work with
 txraw=$($cli_source createrawtransaction "[]" "{\"$trg_addr\":$amount}")
+echo 'createrawtransaction "[]" "{\"'$trg_addr'\":'$amount'}"'
 echo "txraw: $txraw"
+echo "target: $target"
 # Convert to an export tx
-exportData=`$cli_source migrate_converttoexport $txraw $target $amount`
+exportData=`$cli_source migrate_converttoexport $txraw $target`
+echo "exportData: $exportData"
 echo "exportData: $exportData" >> $result_logfile
 exportRaw=`echo $exportData | jq -r .exportTx`
 
 # Fund it
 exportFundedData=`$cli_source fundrawtransaction $exportRaw`
+echo "exportFundedData: $exportFundedData"
 echo "exportFundedData: $exportFundedData" >> $result_logfile
 exportFundedTx=`echo $exportFundedData | jq -r .hex`
+echo "exportFundedTx: $exportFundedTx"
+echo "exportFundedTx: $exportFundedTx" >> $result_logfile
 payouts=`echo $exportData | jq -r .payouts`
 
 # 4. Sign rawtx and export
 signedhex=`$cli_source signrawtransaction $exportFundedTx | jq -r .hex`
+echo "signedhex: $signedhex"
 echo "signedhex: $signedhex" >> $result_logfile
 sentTX=`$cli_source sendrawtransaction $signedhex`
 echo "sentTX: $sentTX" >> $result_logfile
@@ -169,8 +188,8 @@ while [[ ${created} -eq 0 ]]; do
   if [[ ${importTX} != "" ]]; then
     created=1
   fi
+  runTime=$(echo $SECONDS-$initTime|bc)
 done
-runTime=$(echo $SECONDS-$initTime|bc)
 echo "importTX: $importTX" >> $result_logfile
 echo -e "${col_green}Create import transaction successful! (${runTime} sec)${col_default}"
 echo -e "${col_green}Create import transaction successful! (${runTime} sec)${col_default}" >> $result_logfile
@@ -185,8 +204,8 @@ while [[ $created -eq 0 ]]; do
   if [[ $completeTX != "" ]]; then
     created=1
   fi
+  runTime=$(echo $SECONDS-$initTime|bc)
 done
-runTime=$(echo $SECONDS-$initTime|bc)
 echo "completeTX: $completeTX" >> $result_logfile
 echo -e "${col_green}Sign import transaction on KMD complete! ($runTime sec)${col_default}"
 echo -e "${col_green}Sign import transaction on KMD complete! ($runTime sec)${col_default}" >> $result_logfile
@@ -214,7 +233,7 @@ while [[ $sent -eq 0 ]]; do
     exit
   else
     tries=$(( $tries +1 ))
-    if [[ $tries -ge 60 ]]; then
+    if [[ $tries -ge 90 ]]; then
       echo -e "${col_red}"
       echo "------------------------------------------------------------"
       echo "Failed Import TX on $target at $(date)"
