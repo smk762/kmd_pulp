@@ -10,8 +10,8 @@ import platform
 
 #chain=sys.argv[0]
 #orcl_id=sys.argv[1]
-chain='CFEK'
-orcl_id="155ea1645056c7e369b2bd1fb50c81608b8caac4d3bb1bf6f532f435f6d90d4d"
+chain='CFEKX'
+orcl_id="125b31e20a262fe78ed71426a67e02d1ada07fe79238d6f54aac10a39a47fa5e"
 
 # define function that fetchs rpc creds from .conf
 def def_credentials(chain):
@@ -99,6 +99,9 @@ def write2oracle(chain, orcl_id, MSG):
 	#convert big endian length to little endian, append rawhex to little endian length
 	lilend = bigend[2] + bigend[3] + bigend[0] + bigend[1]
 	fullhex = lilend + rawhex
+	print(bigend)
+	print(lilend)
+	print(rawhex)
 
 	oraclesdata_result = oraclesdata_rpc(chain, orcl_id, fullhex)
 	print(chain)
