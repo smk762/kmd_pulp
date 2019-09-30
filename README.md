@@ -1,6 +1,7 @@
 # kmd_pulp
-random assortment of small scripts for use in the Komodo ecosystem
-Note: Repo no longer maintained - See https://github.com/smk762/DragonhoundTools for latest scripts
+random assortment of small scripts for use in the Komodo ecosystem  
+
+### Note: Repo no longer maintained - See https://github.com/smk762/DragonhoundTools for latest scripts
 
 ./Staked/* - scripts for Staked notarisation, cross chain migration and cli commands
 
